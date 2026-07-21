@@ -14,6 +14,8 @@ struct TaskRowView: View {
                 Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 17))
                     .foregroundStyle(task.isCompleted ? .green : .secondary)
+                    .frame(width: CalRemControlStyle.compactHitSize, height: CalRemControlStyle.compactHitSize)
+                    .contentShape(Circle())
             }
             .buttonStyle(.plain)
 
@@ -56,7 +58,7 @@ struct TaskRowView: View {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.secondary)
-                    .frame(width: 28, height: 28)
+                    .frame(width: CalRemControlStyle.minimumHitSize, height: CalRemControlStyle.minimumHitSize)
                     .contentShape(Rectangle())
             }
             .menuStyle(.borderlessButton)
@@ -69,8 +71,9 @@ struct TaskRowView: View {
         .padding(.vertical, 7)
         .background(
             isHovering ? Color.accentColor.opacity(0.055) : Color.clear,
-            in: RoundedRectangle(cornerRadius: 8)
+            in: RoundedRectangle(cornerRadius: CalRemControlStyle.rowRadius, style: .continuous)
         )
+        .clipShape(RoundedRectangle(cornerRadius: CalRemControlStyle.rowRadius, style: .continuous))
         .contextMenu {
             Button("Edit", action: onEdit)
             Button(task.isCompleted ? "Mark Incomplete" : "Complete", action: onToggle)

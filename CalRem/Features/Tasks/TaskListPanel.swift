@@ -59,7 +59,7 @@ struct TaskListPanel: View {
             } label: {
                 Label("New Task", systemImage: "plus.circle.fill")
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(CalRemPillButtonStyle(isProminent: true))
             .help("Create task")
         }
         .padding(.horizontal, 22)

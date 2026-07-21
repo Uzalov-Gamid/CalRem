@@ -33,8 +33,9 @@ struct SidebarView: View {
                     Label("New List", systemImage: "plus")
                         .font(.callout)
                         .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 5)
+                        .padding(.horizontal, 8)
+                        .frame(maxWidth: .infinity, minHeight: CalRemControlStyle.minimumHitSize, alignment: .leading)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
@@ -56,6 +57,8 @@ struct SidebarView: View {
             )
         }
         .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
     }
 
     private func smartFilterRow(_ filter: SmartFilter) -> some View {
@@ -72,10 +75,12 @@ struct SidebarView: View {
             )
         }
         .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
     }
 
     private func taskListRow(_ list: TaskList) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 4) {
             Button {
                 workspace = .tasks
                 selection = .list(list.id)
@@ -89,6 +94,8 @@ struct SidebarView: View {
                 )
             }
             .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
 
             Menu {
                 Button("Edit List") {
@@ -102,12 +109,14 @@ struct SidebarView: View {
                 Image(systemName: "ellipsis")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .frame(width: 20, height: 20)
+                    .frame(width: CalRemControlStyle.compactHitSize, height: CalRemControlStyle.compactHitSize)
+                    .contentShape(Rectangle())
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
             .help("List actions")
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .contextMenu {
             Button("Edit List") {
                 onEditList(list)
@@ -174,11 +183,11 @@ private struct SidebarRowLabel: View {
             }
         }
         .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: CalRemControlStyle.minimumHitSize, alignment: .leading)
         .background(
             isSelected ? Color.accentColor.opacity(0.14) : Color.clear,
-            in: RoundedRectangle(cornerRadius: 7)
+            in: RoundedRectangle(cornerRadius: CalRemControlStyle.rowRadius, style: .continuous)
         )
+        .contentShape(Rectangle())
     }
 }

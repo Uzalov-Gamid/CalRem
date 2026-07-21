@@ -204,11 +204,13 @@ struct RootView: View {
                 Label("Previous", systemImage: "chevron.left")
             }
             .labelStyle(.iconOnly)
+            .buttonStyle(CalRemIconButtonStyle())
             .help("Previous \(calendarMode.title.lowercased())")
 
             Button("Today") {
                 selectedDate = .now
             }
+            .buttonStyle(CalRemPillButtonStyle())
             .help("Jump to today")
 
             Button {
@@ -217,6 +219,7 @@ struct RootView: View {
                 Label("Next", systemImage: "chevron.right")
             }
             .labelStyle(.iconOnly)
+            .buttonStyle(CalRemIconButtonStyle())
             .help("Next \(calendarMode.title.lowercased())")
 
             Picker("Calendar View", selection: $calendarMode) {
@@ -224,6 +227,7 @@ struct RootView: View {
                     Text(mode.title).tag(mode)
                 }
             }
+            .labelsHidden()
             .pickerStyle(.segmented)
             .frame(width: 210)
 
@@ -235,6 +239,7 @@ struct RootView: View {
             } label: {
                 Label("New Task", systemImage: "plus.circle.fill")
             }
+            .buttonStyle(CalRemPillButtonStyle(isProminent: true))
             .help("Create task on selected date")
         }
         .padding(.horizontal, 22)
@@ -266,9 +271,11 @@ struct RootView: View {
                 Button("Cancel", role: .cancel) {
                     isCreatingList = false
                 }
+                .buttonStyle(CalRemPillButtonStyle())
                 Button("Create") {
                     createList()
                 }
+                .buttonStyle(CalRemPillButtonStyle(isProminent: true))
                 .keyboardShortcut(.defaultAction)
                 .disabled(newListName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
