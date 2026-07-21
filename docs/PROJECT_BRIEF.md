@@ -51,6 +51,17 @@ collaboration exists.
 - Keep scheduling and calendar date math testable outside SwiftUI views.
 - Prefer small, reviewable branches and commits.
 
+## Implemented Structure
+
+- `CalRem/App`: app entry point.
+- `CalRem/Models`: SwiftData task and list models.
+- `CalRem/Persistence`: model container and first-run data setup.
+- `CalRem/Services/Calendar`: calendar modes, date math, and scheduling rules.
+- `CalRem/Services/Notifications`: local notification scheduling.
+- `CalRem/Features`: SwiftUI feature screens.
+- `CalRem/DesignSystem`: small shared color/date helpers.
+- `CalRemTests`: unit tests for non-UI core behavior.
+
 ## Release Criteria
 
 Version `v0.1.0` is ready when a user can create a list, create a task with a
