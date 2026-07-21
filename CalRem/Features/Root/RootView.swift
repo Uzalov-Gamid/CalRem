@@ -84,9 +84,11 @@ struct RootView: View {
     @State private var selection: SidebarSelection = .smart(.today)
     @State private var selectedDate = Date()
     @State private var calendarMode: CalendarMode = .week
+    @State private var isCalendarTaskDrawerOpen = false
     @State private var createTaskRequest: TaskCreationRequest?
     @State private var editingTask: TaskItem?
     @State private var calendarEditingTask: TaskItem?
+    @State private var calendarDraftTaskID: UUID?
     @State private var editingList: TaskList?
     @State private var isCreatingList = false
     @State private var newListName = ""
@@ -177,14 +179,32 @@ struct RootView: View {
             VStack(spacing: 0) {
                 calendarHeader
                 Divider()
-                PlannerCalendarView(
-                    tasks: calendarTasks,
-                    selectedDate: $selectedDate,
-                    mode: $calendarMode,
-                    onEditTask: { calendarEditingTask = $0 },
-                    onUpdateTaskSchedule: updateTaskSchedule,
-                    onCreateTaskSchedule: createCalendarTask
-                )
+
+                HStack(spacing: 0) {
+                    PlannerCalendarView(
+                        tasks: calendarTasks,
+                        selectedDate: $selectedDate,
+                        mode: $calendarMode,
+                        onEditTask: { calendarEditingTask = $0 },
+                        onUpdateTaskSchedule: updateTaskSchedule,
+                        onCreateTaskSchedule: createCalendarTask,
+                        onScheduleExistingTask: scheduleExistingTask
+                    )
+                    .layoutPriority(1)
+
+                    if isCalendarTaskDrawerOpen {
+                        Divider()
+                        CalendarTaskDrawerView(
+                            overdueTasks: overdueDrawerTasks,
+                            unscheduledTasks: unscheduledDrawerTasks,
+                            onEditTask: { editingTask = $0 },
+                            onToggleTask: toggleTask,
+                            onDeleteTask: deleteTask
+                        )
+                        .frame(width: 306)
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                    }
+                }
             }
 
             if let calendarEditingTask {
@@ -193,7 +213,7 @@ struct RootView: View {
                     lists: activeLists,
                     onSave: saveCalendarTaskInlineEdit,
                     onDelete: deleteCalendarTaskFromInlineEdit,
-                    onDismiss: { self.calendarEditingTask = nil }
+                    onDismiss: dismissCalendarInlineEditor
                 )
                 .padding(.top, 96)
                 .padding(.trailing, 26)
@@ -224,6 +244,17 @@ struct RootView: View {
             }
 
             Spacer()
+
+            Button {
+                withAnimation(.snappy(duration: 0.18)) {
+                    isCalendarTaskDrawerOpen.toggle()
+                }
+            } label: {
+                Image(systemName: "sidebar.right")
+                    .font(.system(size: 14, weight: .semibold))
+            }
+            .buttonStyle(CalRemIconButtonStyle(size: 30))
+            .help(isCalendarTaskDrawerOpen ? "Hide task drawer" : "Show task drawer")
 
             Button {
                 createCalendarTask(defaultCalendarTaskSchedule())
@@ -352,6 +383,22 @@ struct RootView: View {
             .sorted(by: taskSort)
     }
 
+    private var unscheduledDrawerTasks: [TaskItem] {
+        tasks
+            .filter { !$0.isCompleted && !$0.isScheduled }
+            .sorted(by: taskSort)
+    }
+
+    private var overdueDrawerTasks: [TaskItem] {
+        let startOfToday = Calendar.current.startOfDay(for: .now)
+        return tasks
+            .filter { task in
+                guard !task.isCompleted, let start = task.calendarStart else { return false }
+                return start < startOfToday
+            }
+            .sorted(by: taskSort)
+    }
+
     private var filteredTasks: [TaskItem] {
         switch selection {
         case .smart(.today):
@@ -462,6 +509,7 @@ struct RootView: View {
         selectedDate = schedule.start
         workspace = .calendar
         try? modelContext.save()
+        calendarDraftTaskID = task.id
         calendarEditingTask = task
     }
 
@@ -491,12 +539,35 @@ struct RootView: View {
             await NotificationScheduler.shared.sync(reminderPayload)
         }
 
+        calendarDraftTaskID = nil
         calendarEditingTask = nil
     }
 
     private func deleteCalendarTaskFromInlineEdit(_ task: TaskItem) {
+        if calendarDraftTaskID == task.id {
+            calendarDraftTaskID = nil
+        }
         calendarEditingTask = nil
         deleteTask(task)
+    }
+
+    private func dismissCalendarInlineEditor() {
+        guard let task = calendarEditingTask else { return }
+        calendarEditingTask = nil
+
+        guard calendarDraftTaskID == task.id else { return }
+        calendarDraftTaskID = nil
+
+        if isEmptyCalendarDraft(task) {
+            deleteTask(task)
+        }
+    }
+
+    private func isEmptyCalendarDraft(_ task: TaskItem) -> Bool {
+        task.title == "New Task"
+            && task.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !task.isCompleted
+            && task.reminderDate == nil
     }
 
     private func updateTaskSchedule(_ task: TaskItem, start: Date, end: Date) {
@@ -528,6 +599,11 @@ struct RootView: View {
         Task {
             await NotificationScheduler.shared.sync(payload)
         }
+    }
+
+    private func scheduleExistingTask(taskID: UUID, start: Date, end: Date) {
+        guard let task = tasks.first(where: { $0.id == taskID }) else { return }
+        updateTaskSchedule(task, start: start, end: end)
     }
 
     private func defaultCalendarTaskSchedule() -> CalendarTaskDraftSchedule {
@@ -629,6 +705,212 @@ struct RootView: View {
     private func list(with id: UUID?) -> TaskList? {
         guard let id else { return nil }
         return activeLists.first { $0.id == id }
+    }
+}
+
+private struct CalendarTaskDrawerView: View {
+    let overdueTasks: [TaskItem]
+    let unscheduledTasks: [TaskItem]
+    let onEditTask: (TaskItem) -> Void
+    let onToggleTask: (TaskItem) -> Void
+    let onDeleteTask: (TaskItem) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            drawerHeader
+            Divider()
+
+            if overdueTasks.isEmpty && unscheduledTasks.isEmpty {
+                ContentUnavailableView(
+                    "No Tasks to Schedule",
+                    systemImage: "tray",
+                    description: Text("Unscheduled and overdue tasks will appear here.")
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 18) {
+                        if !overdueTasks.isEmpty {
+                            CalendarTaskDrawerSection(
+                                title: "Overdue",
+                                systemImage: "exclamationmark.circle",
+                                tasks: overdueTasks,
+                                onEditTask: onEditTask,
+                                onToggleTask: onToggleTask,
+                                onDeleteTask: onDeleteTask
+                            )
+                        }
+
+                        if !unscheduledTasks.isEmpty {
+                            CalendarTaskDrawerSection(
+                                title: "Unscheduled",
+                                systemImage: "tray",
+                                tasks: unscheduledTasks,
+                                onEditTask: onEditTask,
+                                onToggleTask: onToggleTask,
+                                onDeleteTask: onDeleteTask
+                            )
+                        }
+                    }
+                    .padding(16)
+                }
+            }
+        }
+        .background(Color(nsColor: .textBackgroundColor))
+    }
+
+    private var drawerHeader: some View {
+        HStack(spacing: 9) {
+            Image(systemName: "tray.full")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Tasks")
+                    .font(.headline.weight(.semibold))
+                Text("\(overdueTasks.count + unscheduledTasks.count) waiting")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 13)
+    }
+}
+
+private struct CalendarTaskDrawerSection: View {
+    let title: String
+    let systemImage: String
+    let tasks: [TaskItem]
+    let onEditTask: (TaskItem) -> Void
+    let onToggleTask: (TaskItem) -> Void
+    let onDeleteTask: (TaskItem) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 11, weight: .semibold))
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                Text("\(tasks.count)")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 6)
+                    .frame(minHeight: 18)
+                    .background(Color.secondary.opacity(0.10), in: Capsule())
+            }
+            .foregroundStyle(.secondary)
+
+            VStack(spacing: 2) {
+                ForEach(tasks) { task in
+                    CalendarTaskDrawerRow(
+                        task: task,
+                        onEditTask: { onEditTask(task) },
+                        onToggleTask: { onToggleTask(task) },
+                        onDeleteTask: { onDeleteTask(task) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+private struct CalendarTaskDrawerRow: View {
+    let task: TaskItem
+    let onEditTask: () -> Void
+    let onToggleTask: () -> Void
+    let onDeleteTask: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 9) {
+            Button(action: onToggleTask) {
+                completionMark
+            }
+            .buttonStyle(.plain)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(task.title)
+                    .font(.callout)
+                    .lineLimit(2)
+                    .foregroundStyle(task.isCompleted ? .secondary : .primary)
+                    .strikethrough(task.isCompleted)
+
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(ListColor.named(task.list?.colorName).color)
+                        .frame(width: 7, height: 7)
+
+                    Text(task.list?.name ?? "No List")
+                        .lineLimit(1)
+
+                    if task.isScheduled {
+                        Text(DateFormatters.taskSchedule(task))
+                            .lineLimit(1)
+                    } else {
+                        Text("Drag to schedule")
+                            .lineLimit(1)
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 6)
+
+            Menu {
+                Button("Edit", action: onEditTask)
+                Button(task.isCompleted ? "Mark Incomplete" : "Complete", action: onToggleTask)
+                Divider()
+                Button("Delete", role: .destructive, action: onDeleteTask)
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: CalRemControlStyle.minimumHitSize, height: CalRemControlStyle.minimumHitSize)
+                    .contentShape(Rectangle())
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .opacity(isHovering ? 1 : 0.45)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 9)
+        .background(
+            isHovering ? Color.accentColor.opacity(0.055) : Color.clear,
+            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2, perform: onEditTask)
+        .onHover { isHovering = $0 }
+        .onDrag {
+            NSItemProvider(object: task.id.uuidString as NSString)
+        }
+        .help(task.isScheduled ? DateFormatters.taskSchedule(task) : "Drag to schedule")
+    }
+
+    private var completionMark: some View {
+        ZStack {
+            Circle()
+                .strokeBorder(
+                    task.isCompleted ? Color.green : Color.secondary.opacity(0.55),
+                    lineWidth: 1.6
+                )
+                .background(Circle().fill(task.isCompleted ? Color.green : Color.clear))
+
+            if task.isCompleted {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+        }
+        .frame(width: 18, height: 18)
+        .frame(width: CalRemControlStyle.minimumHitSize, height: CalRemControlStyle.minimumHitSize)
+        .contentShape(Circle())
     }
 }
 

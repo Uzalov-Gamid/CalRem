@@ -6,11 +6,13 @@ struct WeekCalendarView: View {
     let onEditTask: (TaskItem) -> Void
     let onUpdateTaskSchedule: (TaskItem, Date, Date) -> Void
     let onCreateTaskSchedule: (CalendarTaskDraftSchedule) -> Void
+    let onScheduleExistingTask: (UUID, Date, Date) -> Void
 
     private let calendarService = CalendarDateService()
     private let hourHeight = CalRemControlStyle.calendarHourHeight
     private let timeColumnWidth = CalRemControlStyle.calendarTimeColumnWidth
     @State private var creationPreview: CalendarTaskDraftSchedule?
+    @State private var dropPreview: CalendarTaskDraftSchedule?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -104,7 +106,7 @@ struct WeekCalendarView: View {
             }
 
             GeometryReader { proxy in
-                if let preview = creationPreview,
+                if let preview = activePreview,
                    let end = preview.end,
                    calendarService.calendar.isDate(preview.start, inSameDayAs: day) {
                     CalendarTaskCreationPreviewBlock(start: preview.start, end: end)
@@ -139,6 +141,15 @@ struct WeekCalendarView: View {
         .frame(maxWidth: .infinity)
         .frame(height: hourHeight * 24)
         .background(dayBackground(for: day))
+        .onDrop(
+            of: [.plainText],
+            delegate: CalendarTaskTimelineDropDelegate(
+                day: day,
+                hourHeight: hourHeight,
+                preview: $dropPreview,
+                onScheduleTaskID: onScheduleExistingTask
+            )
+        )
         .overlay(alignment: .trailing) {
             Rectangle()
                 .fill(Color(nsColor: .separatorColor).opacity(0.28))
@@ -202,6 +213,10 @@ struct WeekCalendarView: View {
 
     private var weekDays: [Date] {
         calendarService.week(containing: selectedDate)
+    }
+
+    private var activePreview: CalendarTaskDraftSchedule? {
+        creationPreview ?? dropPreview
     }
 
     private func dayBackground(for day: Date) -> Color {
