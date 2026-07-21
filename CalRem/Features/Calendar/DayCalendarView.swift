@@ -19,14 +19,22 @@ struct DayCalendarView: View {
             allDaySection
             Divider()
 
-            ScrollView {
-                HStack(alignment: .top, spacing: 0) {
-                    hourLabels
-                    timeline
+            ScrollViewReader { scrollProxy in
+                ScrollView {
+                    HStack(alignment: .top, spacing: 0) {
+                        hourLabels
+                        timeline
+                    }
+                    .padding(.trailing, 12)
                 }
-                .padding(.trailing, 12)
+                .background(Color(nsColor: .textBackgroundColor))
+                .onAppear {
+                    scrollToInitialHour(with: scrollProxy)
+                }
+                .onChange(of: selectedDate) { _, _ in
+                    scrollToInitialHour(with: scrollProxy)
+                }
             }
-            .background(Color(nsColor: .textBackgroundColor))
         }
     }
 
@@ -78,6 +86,7 @@ struct DayCalendarView: View {
                     .foregroundStyle(.secondary)
                     .frame(width: timeColumnWidth, height: hourHeight, alignment: .topTrailing)
                     .padding(.trailing, 10)
+                    .id(hourAnchor(hour))
             }
         }
         .background(Color(nsColor: .textBackgroundColor))
@@ -236,5 +245,21 @@ struct DayCalendarView: View {
         }
 
         return CalendarTaskLayoutService.placements(for: inputs)
+    }
+
+    private func scrollToInitialHour(with proxy: ScrollViewProxy) {
+        let targetHour = calendarService.calendar.isDateInToday(selectedDate)
+            ? max(calendarService.calendar.component(.hour, from: .now) - 1, 0)
+            : 7
+
+        DispatchQueue.main.async {
+            withAnimation(.snappy(duration: 0.2)) {
+                proxy.scrollTo(hourAnchor(targetHour), anchor: .top)
+            }
+        }
+    }
+
+    private func hourAnchor(_ hour: Int) -> String {
+        "day-hour-\(hour)"
     }
 }
