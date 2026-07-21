@@ -40,6 +40,12 @@ globally pointed at Xcode, use:
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -version
 ```
 
+Run the current test suite with:
+
+```bash
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild test -project CalRem.xcodeproj -scheme CalRem -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO
+```
+
 More detail lives in:
 
 - [Project brief](docs/PROJECT_BRIEF.md)
