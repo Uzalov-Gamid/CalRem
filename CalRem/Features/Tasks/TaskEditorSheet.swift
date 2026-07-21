@@ -8,6 +8,8 @@ struct TaskEditorSheet: View {
     let task: TaskItem?
     let lists: [TaskList]
     let defaultList: TaskList?
+    let defaultDate: Date?
+    let defaultAllDay: Bool
 
     @State private var title: String
     @State private var notes: String
@@ -22,25 +24,36 @@ struct TaskEditorSheet: View {
     @State private var reminderDate: Date
     @State private var priority: TaskPriority
 
-    init(task: TaskItem?, lists: [TaskList], defaultList: TaskList?) {
+    init(
+        task: TaskItem?,
+        lists: [TaskList],
+        defaultList: TaskList?,
+        defaultDate: Date? = nil,
+        defaultAllDay: Bool = false
+    ) {
         self.task = task
         self.lists = lists
         self.defaultList = defaultList
+        self.defaultDate = defaultDate
+        self.defaultAllDay = defaultAllDay
 
-        let calendarStart = task?.calendarStart ?? .now
-        let calendarEnd = task?.calendarEnd ?? Calendar.current.date(byAdding: .minute, value: 30, to: calendarStart) ?? calendarStart
+        let defaultStart = Self.defaultStartTime(for: defaultDate ?? .now)
+        let calendarStart = task?.calendarStart ?? defaultDate ?? defaultStart
+        let startTime = task?.calendarStart ?? defaultStart
+        let calendarEnd = task?.calendarEnd ?? Calendar.current.date(byAdding: .minute, value: 30, to: startTime) ?? startTime
+        let shouldShowDate = task?.isScheduled ?? (defaultDate != nil)
 
         _title = State(initialValue: task?.title ?? "")
         _notes = State(initialValue: task?.notes ?? "")
         _selectedListID = State(initialValue: task?.list?.id ?? defaultList?.id)
         _isCompleted = State(initialValue: task?.isCompleted ?? false)
-        _hasDate = State(initialValue: task?.isScheduled ?? false)
+        _hasDate = State(initialValue: shouldShowDate)
         _scheduleDate = State(initialValue: calendarStart)
-        _isAllDay = State(initialValue: task?.isAllDay ?? false)
-        _startTime = State(initialValue: calendarStart)
+        _isAllDay = State(initialValue: task?.isAllDay ?? defaultAllDay)
+        _startTime = State(initialValue: startTime)
         _endTime = State(initialValue: calendarEnd)
         _hasReminder = State(initialValue: task?.reminderDate != nil)
-        _reminderDate = State(initialValue: task?.reminderDate ?? calendarStart)
+        _reminderDate = State(initialValue: task?.reminderDate ?? startTime)
         _priority = State(initialValue: task?.priority ?? .none)
     }
 
@@ -112,6 +125,21 @@ struct TaskEditorSheet: View {
 
     private var trimmedTitle: String {
         title.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func defaultStartTime(for date: Date) -> Date {
+        let calendar = Calendar.current
+
+        if calendar.isDateInToday(date) {
+            let now = Date()
+            let components = calendar.dateComponents([.minute], from: now)
+            let minute = components.minute ?? 0
+            let minutesToAdd = minute < 30 ? 30 - minute : 60 - minute
+
+            return calendar.date(byAdding: .minute, value: minutesToAdd, to: now) ?? now
+        }
+
+        return calendar.date(bySettingHour: 9, minute: 0, second: 0, of: date) ?? date
     }
 
     private func save() {
