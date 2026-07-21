@@ -4,6 +4,7 @@ struct MonthCalendarView: View {
     let tasks: [TaskItem]
     @Binding var selectedDate: Date
     let onEditTask: (TaskItem) -> Void
+    let onCreateTaskSchedule: (CalendarTaskDraftSchedule) -> Void
 
     private let calendarService = CalendarDateService()
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 1), count: 7)
@@ -87,6 +88,13 @@ struct MonthCalendarView: View {
                 .stroke(borderColor(for: day), lineWidth: isSelected(day) ? 1.4 : 1)
         }
         .contentShape(Rectangle())
+        .gesture(
+            TapGesture(count: 2)
+                .onEnded {
+                    selectedDate = day
+                    onCreateTaskSchedule(.allDay(on: day))
+                }
+        )
         .onTapGesture {
             selectedDate = day
         }
