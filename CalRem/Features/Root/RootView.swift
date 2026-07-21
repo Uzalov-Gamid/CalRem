@@ -187,16 +187,42 @@ struct RootView: View {
     }
 
     private var calendarHeader: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Calendar")
-                    .font(.title2.weight(.semibold))
-                Text(calendarService.title(for: selectedDate, mode: calendarMode))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+        HStack(spacing: 14) {
+            HStack(spacing: 10) {
+                Image(systemName: "calendar")
+                    .font(.system(size: 17, weight: .semibold))
+                    .frame(width: CalRemControlStyle.minimumHitSize, height: CalRemControlStyle.minimumHitSize)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(calendarHeaderTitle)
+                        .font(.title2.weight(.semibold))
+                    Text(calendarService.title(for: selectedDate, mode: calendarMode))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Spacer()
+
+            Button {
+                showCreateTask(
+                    scheduledOn: selectedDate,
+                    allDay: calendarMode == .month
+                )
+            } label: {
+                Label("New Task", systemImage: "plus")
+            }
+            .buttonStyle(CalRemPillButtonStyle(isProminent: true))
+            .help("Create task on selected date")
+
+            Picker("Calendar View", selection: $calendarMode) {
+                ForEach(CalendarMode.allCases) { mode in
+                    Text(mode.title).tag(mode)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            .frame(width: 210)
 
             Button {
                 selectedDate = calendarService.previousDate(from: selectedDate, mode: calendarMode)
@@ -221,29 +247,19 @@ struct RootView: View {
             .labelStyle(.iconOnly)
             .buttonStyle(CalRemIconButtonStyle())
             .help("Next \(calendarMode.title.lowercased())")
-
-            Picker("Calendar View", selection: $calendarMode) {
-                ForEach(CalendarMode.allCases) { mode in
-                    Text(mode.title).tag(mode)
-                }
-            }
-            .labelsHidden()
-            .pickerStyle(.segmented)
-            .frame(width: 210)
-
-            Button {
-                showCreateTask(
-                    scheduledOn: selectedDate,
-                    allDay: calendarMode == .month
-                )
-            } label: {
-                Label("New Task", systemImage: "plus.circle.fill")
-            }
-            .buttonStyle(CalRemPillButtonStyle(isProminent: true))
-            .help("Create task on selected date")
         }
         .padding(.horizontal, 22)
-        .padding(.vertical, 14)
+        .padding(.vertical, 10)
+        .background(Color(nsColor: .textBackgroundColor))
+    }
+
+    private var calendarHeaderTitle: String {
+        switch calendarMode {
+        case .day:
+            selectedDate.formatted(.dateTime.weekday(.wide).month(.wide).day().year())
+        case .week, .month:
+            selectedDate.formatted(.dateTime.month(.wide).year())
+        }
     }
 
     private var createListSheet: some View {
