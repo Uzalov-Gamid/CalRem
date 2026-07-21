@@ -1,6 +1,31 @@
 import SwiftData
 import SwiftUI
 
+enum AppWorkspace: String, CaseIterable, Identifiable {
+    case tasks
+    case calendar
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .tasks:
+            "Tasks"
+        case .calendar:
+            "Calendar"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .tasks:
+            "checklist"
+        case .calendar:
+            "calendar"
+        }
+    }
+}
+
 enum SmartFilter: String, CaseIterable, Identifiable {
     case today
     case upcoming
@@ -41,6 +66,13 @@ enum SidebarSelection: Hashable {
     case list(UUID)
 }
 
+struct TaskCreationRequest: Identifiable {
+    let id = UUID()
+    let defaultListID: UUID?
+    let defaultDate: Date?
+    let defaultAllDay: Bool
+}
+
 struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: [SortDescriptor(\TaskList.sortOrder), SortDescriptor(\TaskList.createdAt)])
@@ -48,12 +80,13 @@ struct RootView: View {
     @Query(sort: [SortDescriptor(\TaskItem.createdAt, order: .reverse)])
     private var tasks: [TaskItem]
 
-    @State private var selection: SidebarSelection? = .smart(.today)
+    @State private var workspace: AppWorkspace = .tasks
+    @State private var selection: SidebarSelection = .smart(.today)
     @State private var selectedDate = Date()
     @State private var calendarMode: CalendarMode = .week
+    @State private var createTaskRequest: TaskCreationRequest?
     @State private var editingTask: TaskItem?
     @State private var editingList: TaskList?
-    @State private var isCreatingTask = false
     @State private var isCreatingList = false
     @State private var newListName = ""
     @State private var newListColor = ListColor.blue
@@ -65,49 +98,31 @@ struct RootView: View {
             SidebarView(
                 lists: activeLists,
                 tasks: tasks,
+                workspace: $workspace,
                 selection: $selection,
                 onAddList: showCreateList,
                 onEditList: { editingList = $0 },
                 onDeleteList: deleteList
             )
-            .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 320)
+            .navigationSplitViewColumnWidth(min: 230, ideal: 260, max: 310)
         } detail: {
-            VStack(spacing: 0) {
-                plannerHeader
-                Divider()
-                HStack(spacing: 0) {
-                    TaskListPanel(
-                        title: contentTitle,
-                        tasks: visibleTasks,
-                        lists: activeLists,
-                        onQuickAdd: quickAddTask,
-                        onAddTask: { isCreatingTask = true },
-                        onEditTask: { editingTask = $0 },
-                        onToggleTask: toggleTask,
-                        onDeleteTask: deleteTask
-                    )
-                    .frame(minWidth: 320, idealWidth: 380, maxWidth: 460)
-
-                    Divider()
-
-                    PlannerCalendarView(
-                        tasks: calendarTasks,
-                        selectedDate: $selectedDate,
-                        mode: $calendarMode,
-                        onEditTask: { editingTask = $0 }
-                    )
-                    .frame(minWidth: 540)
-                }
+            switch workspace {
+            case .tasks:
+                tasksWorkspace
+            case .calendar:
+                calendarWorkspace
             }
         }
         .task {
             PersistenceController.seedDefaultListIfNeeded(in: modelContext)
         }
-        .sheet(isPresented: $isCreatingTask) {
+        .sheet(item: $createTaskRequest) { request in
             TaskEditorSheet(
                 task: nil,
                 lists: activeLists,
-                defaultList: selectedList ?? activeLists.first
+                defaultList: list(with: request.defaultListID) ?? selectedList ?? activeLists.first,
+                defaultDate: request.defaultDate,
+                defaultAllDay: request.defaultAllDay
             )
         }
         .sheet(item: $editingTask) { task in
@@ -126,7 +141,7 @@ struct RootView: View {
         .toolbar {
             ToolbarItemGroup {
                 Button {
-                    isCreatingTask = true
+                    showCreateTask()
                 } label: {
                     Label("New Task", systemImage: "plus")
                 }
@@ -142,10 +157,39 @@ struct RootView: View {
         }
     }
 
-    private var plannerHeader: some View {
+    private var tasksWorkspace: some View {
+        TaskListPanel(
+            title: contentTitle,
+            tasks: visibleTasks,
+            onQuickAdd: quickAddTask,
+            onAddTask: { showCreateTask() },
+            onEditTask: { editingTask = $0 },
+            onToggleTask: toggleTask,
+            onDeleteTask: deleteTask
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(nsColor: .textBackgroundColor))
+    }
+
+    private var calendarWorkspace: some View {
+        VStack(spacing: 0) {
+            calendarHeader
+            Divider()
+            PlannerCalendarView(
+                tasks: calendarTasks,
+                selectedDate: $selectedDate,
+                mode: $calendarMode,
+                onEditTask: { editingTask = $0 }
+            )
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    private var calendarHeader: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(contentTitle)
+                Text("Calendar")
                     .font(.title2.weight(.semibold))
                 Text(calendarService.title(for: selectedDate, mode: calendarMode))
                     .font(.subheadline)
@@ -160,10 +204,12 @@ struct RootView: View {
                 Label("Previous", systemImage: "chevron.left")
             }
             .labelStyle(.iconOnly)
+            .help("Previous \(calendarMode.title.lowercased())")
 
             Button("Today") {
                 selectedDate = .now
             }
+            .help("Jump to today")
 
             Button {
                 selectedDate = calendarService.nextDate(from: selectedDate, mode: calendarMode)
@@ -171,6 +217,7 @@ struct RootView: View {
                 Label("Next", systemImage: "chevron.right")
             }
             .labelStyle(.iconOnly)
+            .help("Next \(calendarMode.title.lowercased())")
 
             Picker("Calendar View", selection: $calendarMode) {
                 ForEach(CalendarMode.allCases) { mode in
@@ -179,8 +226,18 @@ struct RootView: View {
             }
             .pickerStyle(.segmented)
             .frame(width: 210)
+
+            Button {
+                showCreateTask(
+                    scheduledOn: selectedDate,
+                    allDay: calendarMode == .month
+                )
+            } label: {
+                Label("New Task", systemImage: "plus.circle.fill")
+            }
+            .help("Create task on selected date")
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 22)
         .padding(.vertical, 14)
     }
 
@@ -235,43 +292,40 @@ struct RootView: View {
             filter.title
         case let .list(id):
             activeLists.first { $0.id == id }?.name ?? "List"
-        case nil:
-            "Today"
         }
     }
 
     private var visibleTasks: [TaskItem] {
-        filteredTasks(includeUndated: true).sorted(by: taskSort)
+        filteredTasks.sorted(by: taskSort)
     }
 
     private var calendarTasks: [TaskItem] {
-        filteredTasks(includeUndated: false).filter(\.isScheduled)
+        tasks
+            .filter { !$0.isCompleted && $0.isScheduled }
+            .sorted(by: taskSort)
     }
 
-    private func filteredTasks(includeUndated: Bool) -> [TaskItem] {
-        let base: [TaskItem]
+    private var filteredTasks: [TaskItem] {
         switch selection {
-        case .smart(.today), nil:
-            base = tasks.filter { task in
+        case .smart(.today):
+            tasks.filter { task in
                 guard !task.isCompleted else { return false }
-                guard let start = task.calendarStart else { return includeUndated }
+                guard let start = task.calendarStart else { return false }
                 return Calendar.current.isDate(start, inSameDayAs: .now)
             }
         case .smart(.upcoming):
-            base = tasks.filter { task in
+            tasks.filter { task in
                 guard !task.isCompleted else { return false }
-                guard let start = task.calendarStart else { return includeUndated }
+                guard let start = task.calendarStart else { return false }
                 return start >= Calendar.current.startOfDay(for: .now)
             }
         case .smart(.all):
-            base = tasks
+            tasks
         case .smart(.completed):
-            base = tasks.filter(\.isCompleted)
+            tasks.filter(\.isCompleted)
         case let .list(id):
-            base = tasks.filter { $0.list?.id == id }
+            tasks.filter { $0.list?.id == id }
         }
-
-        return includeUndated ? base : base.filter(\.isScheduled)
     }
 
     private func taskSort(_ lhs: TaskItem, _ rhs: TaskItem) -> Bool {
@@ -291,11 +345,37 @@ struct RootView: View {
         }
     }
 
+    private func showCreateTask(scheduledOn date: Date? = nil, allDay: Bool = false) {
+        let contextualDate: Date?
+        let contextualAllDay: Bool
+
+        if let date {
+            contextualDate = date
+            contextualAllDay = allDay
+        } else if case .smart(.today) = selection, workspace == .tasks {
+            contextualDate = .now
+            contextualAllDay = true
+        } else {
+            contextualDate = nil
+            contextualAllDay = false
+        }
+
+        createTaskRequest = TaskCreationRequest(
+            defaultListID: selectedList?.id ?? activeLists.first?.id,
+            defaultDate: contextualDate,
+            defaultAllDay: contextualAllDay
+        )
+    }
+
     private func quickAddTask(title: String) {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, let list = selectedList ?? activeLists.first else { return }
 
         let task = TaskItem(title: trimmed, list: list)
+        if case .smart(.today) = selection {
+            task.apply(schedule: TaskSchedule(dueDate: Calendar.current.startOfDay(for: .now), startDate: nil, endDate: nil, isAllDay: true))
+        }
+
         modelContext.insert(task)
         try? modelContext.save()
     }
@@ -365,7 +445,13 @@ struct RootView: View {
         modelContext.insert(list)
         try? modelContext.save()
         selection = .list(list.id)
+        workspace = .tasks
         isCreatingList = false
+    }
+
+    private func list(with id: UUID?) -> TaskList? {
+        guard let id else { return nil }
+        return activeLists.first { $0.id == id }
     }
 }
 

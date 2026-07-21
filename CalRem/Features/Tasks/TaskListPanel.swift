@@ -3,7 +3,6 @@ import SwiftUI
 struct TaskListPanel: View {
     let title: String
     let tasks: [TaskItem]
-    let lists: [TaskList]
     let onQuickAdd: (String) -> Void
     let onAddTask: () -> Void
     let onEditTask: (TaskItem) -> Void
@@ -14,32 +13,9 @@ struct TaskListPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text("Tasks")
-                    .font(.headline)
-                Spacer()
-                Button {
-                    onAddTask()
-                } label: {
-                    Label("New Task", systemImage: "plus.circle.fill")
-                }
-                .labelStyle(.iconOnly)
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 14)
-
-            HStack(spacing: 8) {
-                Image(systemName: "plus")
-                    .foregroundStyle(.secondary)
-                TextField("Add a task", text: $quickTitle)
-                    .textFieldStyle(.plain)
-                    .onSubmit(submitQuickTask)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 9)
-            .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 8))
-            .padding(16)
+            header
+            Divider()
+            quickAddField
 
             if tasks.isEmpty {
                 ContentUnavailableView(
@@ -64,6 +40,50 @@ struct TaskListPanel: View {
             }
         }
         .background(Color(nsColor: .textBackgroundColor))
+    }
+
+    private var header: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.title2.weight(.semibold))
+                Text(taskCountTitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Button {
+                onAddTask()
+            } label: {
+                Label("New Task", systemImage: "plus.circle.fill")
+            }
+            .buttonStyle(.borderedProminent)
+            .help("Create task")
+        }
+        .padding(.horizontal, 22)
+        .padding(.vertical, 14)
+    }
+
+    private var quickAddField: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "plus")
+                .foregroundStyle(.secondary)
+            TextField("Add a task", text: $quickTitle)
+                .textFieldStyle(.plain)
+                .onSubmit(submitQuickTask)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 8))
+        .padding(.horizontal, 22)
+        .padding(.vertical, 14)
+    }
+
+    private var taskCountTitle: String {
+        let count = tasks.count
+        return count == 1 ? "1 task" : "\(count) tasks"
     }
 
     private func submitQuickTask() {

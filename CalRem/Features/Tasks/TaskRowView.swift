@@ -6,6 +6,8 @@ struct TaskRowView: View {
     let onEdit: () -> Void
     let onDelete: () -> Void
 
+    @State private var isHovering = false
+
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Button(action: onToggle) {
@@ -44,9 +46,31 @@ struct TaskRowView: View {
             }
 
             Spacer()
+
+            Menu {
+                Button("Edit", action: onEdit)
+                Button(task.isCompleted ? "Mark Incomplete" : "Complete", action: onToggle)
+                Divider()
+                Button("Delete", role: .destructive, action: onDelete)
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .help("Task actions")
+            .opacity(isHovering ? 1 : 0.55)
         }
         .contentShape(Rectangle())
+        .padding(.horizontal, 8)
         .padding(.vertical, 7)
+        .background(
+            isHovering ? Color.accentColor.opacity(0.055) : Color.clear,
+            in: RoundedRectangle(cornerRadius: 8)
+        )
         .contextMenu {
             Button("Edit", action: onEdit)
             Button(task.isCompleted ? "Mark Incomplete" : "Complete", action: onToggle)
@@ -54,5 +78,6 @@ struct TaskRowView: View {
             Button("Delete", role: .destructive, action: onDelete)
         }
         .onTapGesture(count: 2, perform: onEdit)
+        .onHover { isHovering = $0 }
     }
 }
