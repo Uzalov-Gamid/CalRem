@@ -97,7 +97,10 @@ struct WeekCalendarView: View {
     }
 
     private func dayTimeline(_ day: Date) -> some View {
-        ZStack(alignment: .top) {
+        let timedTasks = tasksFor(day: day).filter(\.isTimed)
+        let placements = layoutPlacements(for: timedTasks)
+
+        return ZStack(alignment: .top) {
             VStack(spacing: 0) {
                 ForEach(0..<24, id: \.self) { _ in
                     Rectangle()
@@ -111,13 +114,20 @@ struct WeekCalendarView: View {
                 currentTimeLine
             }
 
-            ForEach(tasksFor(day: day).filter(\.isTimed)) { task in
-                CalendarTaskBlock(task: task)
-                    .frame(height: blockHeight(for: task))
-                    .padding(.horizontal, 4)
-                    .offset(y: blockOffset(for: task))
-                    .onTapGesture {
-                        onEditTask(task)
+            GeometryReader { proxy in
+                ForEach(timedTasks) { task in
+                    let placement = placements[task.id] ?? TimedTaskPlacement(id: task.id, column: 0, columnCount: 1)
+                    let gutter: CGFloat = 4
+                    let availableWidth = max(proxy.size.width - gutter * 2, 44)
+                    let columnWidth = availableWidth * placement.widthFraction
+                    let x = gutter + availableWidth * placement.xFraction
+
+                    CalendarTaskBlock(task: task)
+                        .frame(width: max(columnWidth - gutter, 36), height: blockHeight(for: task))
+                        .offset(x: x, y: blockOffset(for: task))
+                        .onTapGesture {
+                            onEditTask(task)
+                        }
                     }
             }
         }
@@ -158,5 +168,16 @@ struct WeekCalendarView: View {
 
     private func blockHeight(for task: TaskItem) -> CGFloat {
         max(CGFloat(task.duration / 3600) * hourHeight, 28)
+    }
+
+    private func layoutPlacements(for tasks: [TaskItem]) -> [UUID: TimedTaskPlacement] {
+        let inputs = tasks.compactMap { task -> TimedTaskLayoutInput? in
+            guard let start = task.calendarStart, let end = task.calendarEnd else {
+                return nil
+            }
+            return TimedTaskLayoutInput(id: task.id, startDate: start, endDate: end)
+        }
+
+        return CalendarTaskLayoutService.placements(for: inputs)
     }
 }
