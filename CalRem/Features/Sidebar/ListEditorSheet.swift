@@ -52,9 +52,11 @@ struct ListEditorSheet: View {
                 Button("Cancel", role: .cancel) {
                     dismiss()
                 }
+                .buttonStyle(CalRemPillButtonStyle())
                 Button("Save") {
                     save()
                 }
+                .buttonStyle(CalRemPillButtonStyle(isProminent: true))
                 .keyboardShortcut(.defaultAction)
                 .disabled(trimmedName.isEmpty)
             }

@@ -112,9 +112,11 @@ struct TaskEditorSheet: View {
                 Button("Cancel", role: .cancel) {
                     dismiss()
                 }
+                .buttonStyle(CalRemPillButtonStyle())
                 Button(task == nil ? "Create" : "Save") {
                     save()
                 }
+                .buttonStyle(CalRemPillButtonStyle(isProminent: true))
                 .keyboardShortcut(.defaultAction)
                 .disabled(trimmedTitle.isEmpty || selectedListID == nil)
             }
