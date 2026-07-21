@@ -179,7 +179,8 @@ struct RootView: View {
                 tasks: calendarTasks,
                 selectedDate: $selectedDate,
                 mode: $calendarMode,
-                onEditTask: { editingTask = $0 }
+                onEditTask: { editingTask = $0 },
+                onUpdateTaskSchedule: updateTaskSchedule
             )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -426,6 +427,37 @@ struct RootView: View {
 
         Task {
             await NotificationScheduler.shared.cancel(taskID: taskID)
+        }
+    }
+
+    private func updateTaskSchedule(_ task: TaskItem, start: Date, end: Date) {
+        let minimumEnd = Calendar.current.date(
+            byAdding: .second,
+            value: Int(TaskScheduleValidator.minimumDuration),
+            to: start
+        ) ?? start
+        let finalEnd = max(end, minimumEnd)
+
+        task.apply(
+            schedule: TaskSchedule(
+                dueDate: start,
+                startDate: start,
+                endDate: finalEnd,
+                isAllDay: false
+            )
+        )
+        selectedDate = start
+        try? modelContext.save()
+
+        let payload = ReminderPayload(
+            taskID: task.id,
+            title: task.title,
+            notes: task.notes,
+            reminderDate: task.reminderDate,
+            isCompleted: task.isCompleted
+        )
+        Task {
+            await NotificationScheduler.shared.sync(payload)
         }
     }
 
