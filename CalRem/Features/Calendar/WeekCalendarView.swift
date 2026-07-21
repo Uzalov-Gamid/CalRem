@@ -6,11 +6,13 @@ struct WeekCalendarView: View {
     let onEditTask: (TaskItem) -> Void
 
     private let calendarService = CalendarDateService()
-    private let hourHeight: CGFloat = 54
+    private let hourHeight = CalRemControlStyle.calendarHourHeight
+    private let timeColumnWidth = CalRemControlStyle.calendarTimeColumnWidth
 
     var body: some View {
         VStack(spacing: 0) {
             weekHeader
+            Divider()
             allDayRow
             Divider()
 
@@ -23,35 +25,28 @@ struct WeekCalendarView: View {
                 }
                 .padding(.trailing, 12)
             }
+            .background(Color(nsColor: .textBackgroundColor))
         }
     }
 
     private var weekHeader: some View {
         HStack(spacing: 0) {
-            Color.clear.frame(width: 52)
-            ForEach(calendarService.week(containing: selectedDate), id: \.self) { day in
-                VStack(spacing: 3) {
-                    Text(day.formatted(.dateTime.weekday(.abbreviated)))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(day.formatted(.dateTime.day()))
-                        .font(.headline.weight(calendarService.isToday(day) ? .bold : .semibold))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            calendarService.isToday(day) ? Color.accentColor.opacity(0.18) : Color.clear,
-                            in: Capsule()
-                        )
-                }
-                .frame(maxWidth: .infinity)
-                .contentShape(Rectangle())
+            Text("")
+                .frame(width: timeColumnWidth, height: 1)
+
+            ForEach(weekDays, id: \.self) { day in
+                WeekDayHeaderCell(
+                    day: day,
+                    isToday: calendarService.isToday(day),
+                    isSelected: calendarService.calendar.isDate(day, inSameDayAs: selectedDate)
+                )
                 .onTapGesture {
                     selectedDate = day
                 }
             }
         }
-        .padding(.top, 12)
-        .padding(.bottom, 8)
+        .frame(height: 58)
+        .background(Color(nsColor: .textBackgroundColor))
     }
 
     private var allDayRow: some View {
@@ -59,52 +54,40 @@ struct WeekCalendarView: View {
             Text("all-day")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-                .frame(width: 52, alignment: .trailing)
-                .padding(.top, 7)
-                .padding(.trailing, 8)
+                .frame(width: timeColumnWidth, alignment: .trailing)
+                .frame(minHeight: 42)
+                .padding(.trailing, 10)
 
-            ForEach(calendarService.week(containing: selectedDate), id: \.self) { day in
-                VStack(spacing: 4) {
-                    let allDayTasks = tasksFor(day: day).filter(\.isAllDay)
-                    if allDayTasks.isEmpty {
-                        Color.clear.frame(height: 28)
-                    } else {
-                        ForEach(allDayTasks.prefix(2)) { task in
-                            CalendarTaskChip(task: task, compact: true)
-                                .onTapGesture {
-                                    onEditTask(task)
-                                }
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, minHeight: 34, alignment: .top)
-                .padding(.horizontal, 4)
+            ForEach(weekDays, id: \.self) { day in
+                allDayCell(for: day)
             }
         }
-        .padding(.bottom, 6)
+        .frame(minHeight: 42)
+        .background(Color(nsColor: .textBackgroundColor))
     }
 
     private var hourLabels: some View {
         VStack(spacing: 0) {
             ForEach(0..<24, id: \.self) { hour in
-                Text("\(hour):00")
+                Text(String(format: "%02d:00", hour))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-                    .frame(width: 44, height: hourHeight, alignment: .topTrailing)
-                    .padding(.trailing, 8)
+                    .frame(width: timeColumnWidth, height: hourHeight, alignment: .topTrailing)
+                    .padding(.trailing, 10)
             }
         }
+        .background(Color(nsColor: .textBackgroundColor))
     }
 
     private func dayTimeline(_ day: Date) -> some View {
         let timedTasks = tasksFor(day: day).filter(\.isTimed)
         let placements = layoutPlacements(for: timedTasks)
 
-        return ZStack(alignment: .top) {
+        return ZStack(alignment: .topLeading) {
             VStack(spacing: 0) {
                 ForEach(0..<24, id: \.self) { _ in
                     Rectangle()
-                        .fill(Color(nsColor: .separatorColor).opacity(0.28))
+                        .fill(Color(nsColor: .separatorColor).opacity(0.20))
                         .frame(height: 1)
                     Color.clear.frame(height: hourHeight - 1)
                 }
@@ -125,6 +108,7 @@ struct WeekCalendarView: View {
                     CalendarTaskBlock(task: task)
                         .frame(width: max(columnWidth - gutter, 36), height: blockHeight(for: task))
                         .offset(x: x, y: blockOffset(for: task))
+                        .contentShape(RoundedRectangle(cornerRadius: CalRemControlStyle.calendarCellRadius, style: .continuous))
                         .onTapGesture {
                             onEditTask(task)
                         }
@@ -133,10 +117,41 @@ struct WeekCalendarView: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: hourHeight * 24)
-        .background(calendarService.calendar.isDate(day, inSameDayAs: selectedDate) ? Color.accentColor.opacity(0.045) : Color.clear)
+        .background(dayBackground(for: day))
         .overlay(alignment: .trailing) {
             Rectangle()
-                .fill(Color(nsColor: .separatorColor).opacity(0.35))
+                .fill(Color(nsColor: .separatorColor).opacity(0.28))
+                .frame(width: 1)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            selectedDate = day
+        }
+    }
+
+    private func allDayCell(for day: Date) -> some View {
+        let allDayTasks = tasksFor(day: day).filter(\.isAllDay)
+
+        return VStack(spacing: 4) {
+            if allDayTasks.isEmpty {
+                Spacer(minLength: 0)
+            } else {
+                ForEach(allDayTasks.prefix(2)) { task in
+                    CalendarTaskChip(task: task, compact: true)
+                        .contentShape(RoundedRectangle(cornerRadius: CalRemControlStyle.calendarCellRadius, style: .continuous))
+                        .onTapGesture {
+                            onEditTask(task)
+                        }
+                }
+            }
+        }
+        .padding(.horizontal, 5)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, minHeight: 42, maxHeight: 92, alignment: .top)
+        .background(dayBackground(for: day))
+        .overlay(alignment: .trailing) {
+            Rectangle()
+                .fill(Color(nsColor: .separatorColor).opacity(0.20))
                 .frame(width: 1)
         }
         .contentShape(Rectangle())
@@ -161,6 +176,16 @@ struct WeekCalendarView: View {
             .sorted { ($0.calendarStart ?? .distantFuture) < ($1.calendarStart ?? .distantFuture) }
     }
 
+    private var weekDays: [Date] {
+        calendarService.week(containing: selectedDate)
+    }
+
+    private func dayBackground(for day: Date) -> Color {
+        calendarService.calendar.isDate(day, inSameDayAs: selectedDate)
+            ? Color.accentColor.opacity(0.055)
+            : Color(nsColor: .textBackgroundColor)
+    }
+
     private func blockOffset(for task: TaskItem) -> CGFloat {
         guard let start = task.calendarStart else { return 0 }
         return CGFloat(calendarService.minutesFromStartOfDay(for: start)) / 60 * hourHeight
@@ -179,5 +204,39 @@ struct WeekCalendarView: View {
         }
 
         return CalendarTaskLayoutService.placements(for: inputs)
+    }
+}
+
+private struct WeekDayHeaderCell: View {
+    let day: Date
+    let isToday: Bool
+    let isSelected: Bool
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(day.formatted(.dateTime.weekday(.abbreviated)))
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+
+            Text(day.formatted(.dateTime.day()))
+                .font(.headline.weight(isToday || isSelected ? .bold : .semibold))
+                .frame(width: 31, height: 28)
+                .background(dayBadgeBackground, in: Capsule())
+                .foregroundStyle(isSelected ? Color.white : Color.primary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Rectangle())
+    }
+
+    private var dayBadgeBackground: Color {
+        if isSelected {
+            return .accentColor
+        }
+
+        if isToday {
+            return Color.accentColor.opacity(0.16)
+        }
+
+        return .clear
     }
 }
