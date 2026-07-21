@@ -91,3 +91,39 @@ struct CalendarTaskBlock: View {
         ListColor.named(task.list?.colorName).color
     }
 }
+
+struct CalendarTaskCreationPreviewBlock: View {
+    let start: Date
+    let end: Date
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text("New Task")
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+
+            Text("\(DateFormatters.time(start)) - \(DateFormatters.time(end))")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(
+            Color.accentColor.opacity(0.18),
+            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+        )
+        .overlay(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(Color.accentColor)
+                .frame(width: 4)
+                .padding(.vertical, 6)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.accentColor.opacity(0.45), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+        }
+        .allowsHitTesting(false)
+    }
+}
