@@ -104,7 +104,7 @@ struct RootView: View {
                 onEditList: { editingList = $0 },
                 onDeleteList: deleteList
             )
-            .navigationSplitViewColumnWidth(min: 230, ideal: 260, max: 310)
+            .navigationSplitViewColumnWidth(min: 260, ideal: 292, max: 340)
         } detail: {
             switch workspace {
             case .tasks:
@@ -192,12 +192,13 @@ struct RootView: View {
             HStack(spacing: 10) {
                 Image(systemName: "calendar")
                     .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.red)
                     .frame(width: CalRemControlStyle.minimumHitSize, height: CalRemControlStyle.minimumHitSize)
 
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(calendarHeaderTitle)
-                        .font(.title2.weight(.semibold))
-                    Text(calendarService.title(for: selectedDate, mode: calendarMode))
+                        .font(.largeTitle.weight(.bold))
+                    Text(calendarHeaderSubtitle)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -249,17 +250,22 @@ struct RootView: View {
             .buttonStyle(CalRemIconButtonStyle())
             .help("Next \(calendarMode.title.lowercased())")
         }
-        .padding(.horizontal, 22)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 24)
+        .padding(.top, 18)
+        .padding(.bottom, 13)
         .background(Color(nsColor: .textBackgroundColor))
     }
 
     private var calendarHeaderTitle: String {
+        selectedDate.formatted(.dateTime.month(.wide).year())
+    }
+
+    private var calendarHeaderSubtitle: String {
         switch calendarMode {
-        case .day:
-            selectedDate.formatted(.dateTime.weekday(.wide).month(.wide).day().year())
-        case .week, .month:
-            selectedDate.formatted(.dateTime.month(.wide).year())
+        case .month:
+            "Month View"
+        case .week, .day:
+            calendarService.title(for: selectedDate, mode: calendarMode)
         }
     }
 

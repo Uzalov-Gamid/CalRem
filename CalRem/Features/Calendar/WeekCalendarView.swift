@@ -226,19 +226,19 @@ private struct WeekDayHeaderCell: View {
                 .font(.headline.weight(isToday || isSelected ? .bold : .semibold))
                 .frame(width: 31, height: 28)
                 .background(dayBadgeBackground, in: Capsule())
-                .foregroundStyle(isSelected ? Color.white : Color.primary)
+                .foregroundStyle(isSelected || isToday ? Color.white : Color.primary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contentShape(Rectangle())
     }
 
     private var dayBadgeBackground: Color {
-        if isSelected {
-            return .accentColor
+        if isToday {
+            return .red
         }
 
-        if isToday {
-            return Color.accentColor.opacity(0.16)
+        if isSelected {
+            return .accentColor
         }
 
         return .clear
