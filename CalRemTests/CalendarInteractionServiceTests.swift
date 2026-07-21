@@ -54,4 +54,34 @@ struct CalendarInteractionServiceTests {
 
         #expect(result.end.timeIntervalSince(result.start) == 15 * 60)
     }
+
+    @Test func testNewTaskRangeUsesClickedTimeAndMinimumDuration() throws {
+        let day = try #require(calendar.date(from: DateComponents(year: 2026, month: 7, day: 21)))
+
+        let result = CalendarInteractionService.newTaskRange(
+            on: day,
+            locationY: 4.5 * 64,
+            hourHeight: 64,
+            calendar: calendar
+        )
+
+        #expect(calendar.component(.hour, from: result.start) == 4)
+        #expect(calendar.component(.minute, from: result.start) == 30)
+        #expect(result.end.timeIntervalSince(result.start) == 15 * 60)
+    }
+
+    @Test func testNewTaskRangeClampsNearEndOfDay() throws {
+        let day = try #require(calendar.date(from: DateComponents(year: 2026, month: 7, day: 21)))
+
+        let result = CalendarInteractionService.newTaskRange(
+            on: day,
+            locationY: 25 * 64,
+            hourHeight: 64,
+            calendar: calendar
+        )
+
+        #expect(calendar.component(.hour, from: result.start) == 23)
+        #expect(calendar.component(.minute, from: result.start) == 45)
+        #expect(result.end == calendar.date(byAdding: .day, value: 1, to: day))
+    }
 }
