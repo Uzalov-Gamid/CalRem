@@ -29,6 +29,7 @@
 		CA0000000000000000000215 /* TaskEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000115 /* TaskEditorSheet.swift */; };
 		CA0000000000000000000216 /* PlannerCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000116 /* PlannerCalendarView.swift */; };
 		CA0000000000000000000217 /* CalendarTaskChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000117 /* CalendarTaskChip.swift */; };
+		CA0000000000000000000225 /* InteractiveCalendarTaskBlock.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000125 /* InteractiveCalendarTaskBlock.swift */; };
 		CA0000000000000000000218 /* MonthCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000118 /* MonthCalendarView.swift */; };
 		CA0000000000000000000219 /* WeekCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000119 /* WeekCalendarView.swift */; };
 		CA0000000000000000000220 /* DayCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000120 /* DayCalendarView.swift */; };
@@ -73,6 +74,7 @@
 		CA0000000000000000000115 /* TaskEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Tasks/TaskEditorSheet.swift; sourceTree = "<group>"; };
 		CA0000000000000000000116 /* PlannerCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Calendar/PlannerCalendarView.swift; sourceTree = "<group>"; };
 		CA0000000000000000000117 /* CalendarTaskChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Calendar/CalendarTaskChip.swift; sourceTree = "<group>"; };
+		CA0000000000000000000125 /* InteractiveCalendarTaskBlock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Calendar/InteractiveCalendarTaskBlock.swift; sourceTree = "<group>"; };
 		CA0000000000000000000118 /* MonthCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Calendar/MonthCalendarView.swift; sourceTree = "<group>"; };
 		CA0000000000000000000119 /* WeekCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Calendar/WeekCalendarView.swift; sourceTree = "<group>"; };
 		CA0000000000000000000120 /* DayCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Calendar/DayCalendarView.swift; sourceTree = "<group>"; };
@@ -143,6 +145,7 @@
 				CA0000000000000000000115 /* TaskEditorSheet.swift */,
 				CA0000000000000000000116 /* PlannerCalendarView.swift */,
 				CA0000000000000000000117 /* CalendarTaskChip.swift */,
+				CA0000000000000000000125 /* InteractiveCalendarTaskBlock.swift */,
 				CA0000000000000000000118 /* MonthCalendarView.swift */,
 				CA0000000000000000000119 /* WeekCalendarView.swift */,
 				CA0000000000000000000120 /* DayCalendarView.swift */,
@@ -281,6 +284,7 @@
 				CA0000000000000000000215 /* TaskEditorSheet.swift in Sources */,
 				CA0000000000000000000216 /* PlannerCalendarView.swift in Sources */,
 				CA0000000000000000000217 /* CalendarTaskChip.swift in Sources */,
+				CA0000000000000000000225 /* InteractiveCalendarTaskBlock.swift in Sources */,
 				CA0000000000000000000218 /* MonthCalendarView.swift in Sources */,
 				CA0000000000000000000219 /* WeekCalendarView.swift in Sources */,
 				CA0000000000000000000220 /* DayCalendarView.swift in Sources */,

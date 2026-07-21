@@ -5,6 +5,7 @@ struct PlannerCalendarView: View {
     @Binding var selectedDate: Date
     @Binding var mode: CalendarMode
     let onEditTask: (TaskItem) -> Void
+    let onUpdateTaskSchedule: (TaskItem, Date, Date) -> Void
 
     var body: some View {
         Group {
@@ -19,13 +20,15 @@ struct PlannerCalendarView: View {
                 WeekCalendarView(
                     tasks: tasks,
                     selectedDate: $selectedDate,
-                    onEditTask: onEditTask
+                    onEditTask: onEditTask,
+                    onUpdateTaskSchedule: onUpdateTaskSchedule
                 )
             case .day:
                 DayCalendarView(
                     tasks: tasks,
                     selectedDate: $selectedDate,
-                    onEditTask: onEditTask
+                    onEditTask: onEditTask,
+                    onUpdateTaskSchedule: onUpdateTaskSchedule
                 )
             }
         }

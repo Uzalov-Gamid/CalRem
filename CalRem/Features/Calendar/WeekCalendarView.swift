@@ -4,6 +4,7 @@ struct WeekCalendarView: View {
     let tasks: [TaskItem]
     @Binding var selectedDate: Date
     let onEditTask: (TaskItem) -> Void
+    let onUpdateTaskSchedule: (TaskItem, Date, Date) -> Void
 
     private let calendarService = CalendarDateService()
     private let hourHeight = CalRemControlStyle.calendarHourHeight
@@ -105,13 +106,16 @@ struct WeekCalendarView: View {
                     let columnWidth = availableWidth * placement.widthFraction
                     let x = gutter + availableWidth * placement.xFraction
 
-                    CalendarTaskBlock(task: task)
-                        .frame(width: max(columnWidth - gutter, 36), height: blockHeight(for: task))
+                    InteractiveCalendarTaskBlock(
+                        task: task,
+                        width: max(columnWidth - gutter, 36),
+                        height: blockHeight(for: task),
+                        hourHeight: hourHeight,
+                        dayWidth: proxy.size.width,
+                        onEditTask: onEditTask,
+                        onUpdateSchedule: onUpdateTaskSchedule
+                    )
                         .offset(x: x, y: blockOffset(for: task))
-                        .contentShape(RoundedRectangle(cornerRadius: CalRemControlStyle.calendarCellRadius, style: .continuous))
-                        .onTapGesture {
-                            onEditTask(task)
-                        }
                     }
             }
         }

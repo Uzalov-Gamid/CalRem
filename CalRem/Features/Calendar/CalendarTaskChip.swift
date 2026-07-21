@@ -48,6 +48,7 @@ struct CalendarTaskChip: View {
 
 struct CalendarTaskBlock: View {
     let task: TaskItem
+    var isInteracting = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -65,7 +66,10 @@ struct CalendarTaskBlock: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(color.opacity(task.isCompleted ? 0.09 : 0.20), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(
+            color.opacity(task.isCompleted ? 0.09 : (isInteracting ? 0.28 : 0.20)),
+            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+        )
         .overlay(alignment: .leading) {
             RoundedRectangle(cornerRadius: 2, style: .continuous)
                 .fill(color)
@@ -74,8 +78,9 @@ struct CalendarTaskBlock: View {
         }
         .overlay {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(color.opacity(0.34), lineWidth: 1)
+                .stroke(color.opacity(isInteracting ? 0.52 : 0.34), lineWidth: 1)
         }
+        .shadow(color: isInteracting ? color.opacity(0.22) : .clear, radius: isInteracting ? 10 : 0, y: isInteracting ? 5 : 0)
         .foregroundStyle(task.isCompleted ? .secondary : .primary)
         .opacity(task.isCompleted ? 0.65 : 1)
         .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
