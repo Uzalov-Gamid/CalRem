@@ -60,7 +60,7 @@ struct MonthCalendarView: View {
                     .font(.caption.weight(calendarService.isToday(day) || isSelected(day) ? .bold : .semibold))
                     .frame(minWidth: 26, minHeight: 24)
                     .background(dayBadgeBackground(for: day), in: Capsule())
-                    .foregroundStyle(isSelected(day) ? Color.white : dayTextColor(for: day))
+                    .foregroundStyle(isSelected(day) || calendarService.isToday(day) ? Color.white : dayTextColor(for: day))
                 Spacer()
             }
 
@@ -113,12 +113,12 @@ struct MonthCalendarView: View {
     }
 
     private func dayBadgeBackground(for day: Date) -> Color {
-        if isSelected(day) {
-            return .accentColor
+        if calendarService.isToday(day) {
+            return .red
         }
 
-        if calendarService.isToday(day) {
-            return Color.accentColor.opacity(0.16)
+        if isSelected(day) {
+            return .accentColor
         }
 
         return .clear

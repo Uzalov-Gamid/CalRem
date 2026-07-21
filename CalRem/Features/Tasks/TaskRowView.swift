@@ -9,24 +9,20 @@ struct TaskRowView: View {
     @State private var isHovering = false
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: 12) {
             Button(action: onToggle) {
-                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 17))
-                    .foregroundStyle(task.isCompleted ? .green : .secondary)
-                    .frame(width: CalRemControlStyle.compactHitSize, height: CalRemControlStyle.compactHitSize)
-                    .contentShape(Circle())
+                completionMark
             }
             .buttonStyle(.plain)
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(task.title)
-                    .font(.body)
+                    .font(.callout)
                     .strikethrough(task.isCompleted)
                     .foregroundStyle(task.isCompleted ? .secondary : .primary)
                     .lineLimit(2)
 
-                HStack(spacing: 6) {
+                HStack(spacing: 7) {
                     Circle()
                         .fill(ListColor.named(task.list?.colorName).color)
                         .frame(width: 7, height: 7)
@@ -35,12 +31,14 @@ struct TaskRowView: View {
                         .lineLimit(1)
 
                     if task.isScheduled {
-                        Text(DateFormatters.taskSchedule(task))
-                            .lineLimit(1)
+                        metadataPill(
+                            title: DateFormatters.taskSchedule(task),
+                            systemImage: task.isAllDay ? "calendar" : "clock"
+                        )
                     }
 
                     if task.reminderDate != nil {
-                        Image(systemName: "bell")
+                        metadataPill(title: "Alert", systemImage: "bell")
                     }
                 }
                 .font(.caption)
@@ -67,13 +65,13 @@ struct TaskRowView: View {
             .opacity(isHovering ? 1 : 0.55)
         }
         .contentShape(Rectangle())
-        .padding(.horizontal, 8)
-        .padding(.vertical, 7)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 11)
         .background(
             isHovering ? Color.accentColor.opacity(0.055) : Color.clear,
-            in: RoundedRectangle(cornerRadius: CalRemControlStyle.rowRadius, style: .continuous)
+            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
         )
-        .clipShape(RoundedRectangle(cornerRadius: CalRemControlStyle.rowRadius, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         .contextMenu {
             Button("Edit", action: onEdit)
             Button(task.isCompleted ? "Mark Incomplete" : "Complete", action: onToggle)
@@ -82,5 +80,40 @@ struct TaskRowView: View {
         }
         .onTapGesture(count: 2, perform: onEdit)
         .onHover { isHovering = $0 }
+    }
+
+    private var completionMark: some View {
+        ZStack {
+            Circle()
+                .strokeBorder(
+                    task.isCompleted ? Color.green : Color.secondary.opacity(0.55),
+                    lineWidth: 1.7
+                )
+                .background(
+                    Circle()
+                        .fill(task.isCompleted ? Color.green : Color.clear)
+                )
+
+            if task.isCompleted {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+        }
+        .frame(width: 22, height: 22)
+        .frame(width: CalRemControlStyle.minimumHitSize, height: CalRemControlStyle.minimumHitSize)
+        .contentShape(Circle())
+    }
+
+    private func metadataPill(title: String, systemImage: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: systemImage)
+                .font(.system(size: 10, weight: .medium))
+            Text(title)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 7)
+        .frame(minHeight: 21)
+        .background(Color.secondary.opacity(0.10), in: Capsule())
     }
 }

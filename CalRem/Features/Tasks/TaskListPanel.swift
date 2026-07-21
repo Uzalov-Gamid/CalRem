@@ -14,7 +14,6 @@ struct TaskListPanel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
-            Divider()
             quickAddField
 
             if tasks.isEmpty {
@@ -25,7 +24,11 @@ struct TaskListPanel: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        Divider()
+                            .padding(.leading, 58)
+
                     ForEach(tasks) { task in
                         TaskRowView(
                             task: task,
@@ -33,10 +36,14 @@ struct TaskListPanel: View {
                             onEdit: { onEditTask(task) },
                             onDelete: { onDeleteTask(task) }
                         )
-                        .listRowSeparator(.hidden)
+                            .padding(.horizontal, 22)
+
+                            Divider()
+                                .padding(.leading, 80)
+                                .padding(.trailing, 22)
+                        }
                     }
                 }
-                .listStyle(.plain)
             }
         }
         .background(Color(nsColor: .textBackgroundColor))
@@ -46,9 +53,10 @@ struct TaskListPanel: View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.title2.weight(.semibold))
+                    .font(.largeTitle.weight(.bold))
+                    .foregroundStyle(Color.accentColor)
                 Text(taskCountTitle)
-                    .font(.subheadline)
+                    .font(.callout)
                     .foregroundStyle(.secondary)
             }
 
@@ -62,23 +70,29 @@ struct TaskListPanel: View {
             .buttonStyle(CalRemPillButtonStyle(isProminent: true))
             .help("Create task")
         }
-        .padding(.horizontal, 22)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 28)
+        .padding(.top, 28)
+        .padding(.bottom, 14)
     }
 
     private var quickAddField: some View {
         HStack(spacing: 8) {
             Image(systemName: "plus")
-                .foregroundStyle(.secondary)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Color.accentColor)
             TextField("Add a task", text: $quickTitle)
                 .textFieldStyle(.plain)
                 .onSubmit(submitQuickTask)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 8))
-        .padding(.horizontal, 22)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 13)
+        .padding(.vertical, 11)
+        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(Color(nsColor: .separatorColor).opacity(0.24), lineWidth: 1)
+        }
+        .padding(.horizontal, 28)
+        .padding(.bottom, 18)
     }
 
     private var taskCountTitle: String {

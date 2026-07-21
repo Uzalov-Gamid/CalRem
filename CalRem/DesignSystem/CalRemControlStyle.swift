@@ -5,6 +5,8 @@ enum CalRemControlStyle {
     static let compactHitSize: CGFloat = 28
     static let toolbarRadius: CGFloat = 8
     static let rowRadius: CGFloat = 7
+    static let sidebarCardRadius: CGFloat = 12
+    static let sidebarInset: CGFloat = 14
     static let calendarCellRadius: CGFloat = 6
     static let calendarTimeColumnWidth: CGFloat = 64
     static let calendarHourHeight: CGFloat = 64
