@@ -118,6 +118,7 @@ struct RootView: View {
         }
         .task {
             PersistenceController.seedDefaultListIfNeeded(in: modelContext)
+            PersistenceController.seedExampleTasksIfNeeded(in: modelContext)
         }
         .sheet(item: $createTaskRequest) { request in
             TaskEditorSheet(
