@@ -68,16 +68,25 @@ struct CalendarTaskInlineEditor: View {
             notesSection
             footer
         }
-        .padding(18)
-        .frame(width: 410)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .padding(16)
+        .frame(width: 384)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(alignment: .leading) {
+            popoverArrow
+        }
         .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(Color(nsColor: .separatorColor).opacity(0.42), lineWidth: 1)
         }
-        .shadow(color: .black.opacity(0.18), radius: 24, y: 12)
+        .shadow(color: .black.opacity(0.16), radius: 18, y: 10)
         .onAppear {
             titleIsFocused = true
+        }
+        .onExitCommand(perform: onDismiss)
+        .onSubmit {
+            if canSave {
+                save()
+            }
         }
     }
 
@@ -102,8 +111,22 @@ struct CalendarTaskInlineEditor: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
+            .keyboardShortcut(.cancelAction)
             .help("Close")
         }
+    }
+
+    private var popoverArrow: some View {
+        RoundedRectangle(cornerRadius: 3, style: .continuous)
+            .fill(.regularMaterial)
+            .frame(width: 18, height: 18)
+            .overlay {
+                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    .stroke(Color(nsColor: .separatorColor).opacity(0.34), lineWidth: 1)
+            }
+            .rotationEffect(.degrees(45))
+            .offset(x: -9, y: -18)
+            .allowsHitTesting(false)
     }
 
     private var titleAndList: some View {
@@ -201,6 +224,7 @@ struct CalendarTaskInlineEditor: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(.red)
+            .keyboardShortcut(.delete, modifiers: [.command])
 
             Spacer()
 
@@ -209,12 +233,16 @@ struct CalendarTaskInlineEditor: View {
             }
             .buttonStyle(CalRemPillButtonStyle(isProminent: true))
             .keyboardShortcut(.defaultAction)
-            .disabled(trimmedTitle.isEmpty || selectedListID == nil)
+            .disabled(!canSave)
         }
     }
 
     private var trimmedTitle: String {
         title.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var canSave: Bool {
+        !trimmedTitle.isEmpty && selectedListID != nil
     }
 
     private func save() {

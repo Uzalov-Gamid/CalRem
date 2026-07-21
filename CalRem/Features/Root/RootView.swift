@@ -236,7 +236,7 @@ struct RootView: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(calendarHeaderTitle)
-                        .font(.largeTitle.weight(.bold))
+                        .font(.title.weight(.semibold))
                     Text(calendarHeaderSubtitle)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -272,7 +272,7 @@ struct RootView: View {
             }
             .labelsHidden()
             .pickerStyle(.segmented)
-            .frame(width: 188)
+            .frame(width: 172)
 
             Button {
                 selectedDate = calendarService.previousDate(from: selectedDate, mode: calendarMode)
@@ -298,9 +298,9 @@ struct RootView: View {
             .buttonStyle(CalRemIconButtonStyle())
             .help("Next \(calendarMode.title.lowercased())")
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 18)
-        .padding(.bottom, 13)
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 10)
         .background(Color(nsColor: .textBackgroundColor))
     }
 
