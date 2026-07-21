@@ -21,16 +21,24 @@ struct WeekCalendarView: View {
             allDayRow
             Divider()
 
-            ScrollView {
-                HStack(alignment: .top, spacing: 0) {
-                    hourLabels
-                    ForEach(calendarService.week(containing: selectedDate), id: \.self) { day in
-                        dayTimeline(day)
+            ScrollViewReader { scrollProxy in
+                ScrollView {
+                    HStack(alignment: .top, spacing: 0) {
+                        hourLabels
+                        ForEach(calendarService.week(containing: selectedDate), id: \.self) { day in
+                            dayTimeline(day)
+                        }
                     }
+                    .padding(.trailing, 12)
                 }
-                .padding(.trailing, 12)
+                .background(Color(nsColor: .textBackgroundColor))
+                .onAppear {
+                    scrollToInitialHour(with: scrollProxy)
+                }
+                .onChange(of: selectedDate) { _, _ in
+                    scrollToInitialHour(with: scrollProxy)
+                }
             }
-            .background(Color(nsColor: .textBackgroundColor))
         }
     }
 
@@ -79,6 +87,7 @@ struct WeekCalendarView: View {
                     .foregroundStyle(.secondary)
                     .frame(width: timeColumnWidth, height: hourHeight, alignment: .topTrailing)
                     .padding(.trailing, 10)
+                    .id(hourAnchor(hour))
             }
         }
         .background(Color(nsColor: .textBackgroundColor))
@@ -290,6 +299,22 @@ struct WeekCalendarView: View {
     private func previewHeight(for preview: CalendarTaskDraftSchedule) -> CGFloat {
         guard let end = preview.end else { return 28 }
         return max(CGFloat(end.timeIntervalSince(preview.start) / 3600) * hourHeight, 28)
+    }
+
+    private func scrollToInitialHour(with proxy: ScrollViewProxy) {
+        let targetHour = calendarService.calendar.isDateInToday(selectedDate)
+            ? max(calendarService.calendar.component(.hour, from: .now) - 1, 0)
+            : 7
+
+        DispatchQueue.main.async {
+            withAnimation(.snappy(duration: 0.2)) {
+                proxy.scrollTo(hourAnchor(targetHour), anchor: .top)
+            }
+        }
+    }
+
+    private func hourAnchor(_ hour: Int) -> String {
+        "week-hour-\(hour)"
     }
 }
 
