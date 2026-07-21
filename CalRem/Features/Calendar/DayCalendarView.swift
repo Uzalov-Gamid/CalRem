@@ -5,6 +5,7 @@ struct DayCalendarView: View {
     @Binding var selectedDate: Date
     let onEditTask: (TaskItem) -> Void
     let onUpdateTaskSchedule: (TaskItem, Date, Date) -> Void
+    let onCreateTaskSchedule: (CalendarTaskDraftSchedule) -> Void
 
     private let calendarService = CalendarDateService()
     private let hourHeight = CalRemControlStyle.calendarHourHeight
@@ -57,6 +58,13 @@ struct DayCalendarView: View {
         .padding(.horizontal, 0)
         .frame(minHeight: 44)
         .background(Color(nsColor: .textBackgroundColor))
+        .contentShape(Rectangle())
+        .gesture(
+            TapGesture(count: 2)
+                .onEnded {
+                    onCreateTaskSchedule(.allDay(on: selectedDate))
+                }
+        )
     }
 
     private var hourLabels: some View {
@@ -85,6 +93,8 @@ struct DayCalendarView: View {
                     Color.clear.frame(height: hourHeight - 1)
                 }
             }
+            .contentShape(Rectangle())
+            .gesture(createTaskTapGesture(on: selectedDate))
 
             if calendarService.isToday(selectedDate) {
                 currentTimeLine
@@ -107,8 +117,8 @@ struct DayCalendarView: View {
                         onEditTask: onEditTask,
                         onUpdateSchedule: onUpdateTaskSchedule
                     )
-                        .offset(x: x, y: blockOffset(for: task))
-                    }
+                    .offset(x: x, y: blockOffset(for: task))
+                }
             }
         }
         .frame(maxWidth: .infinity)
@@ -119,6 +129,18 @@ struct DayCalendarView: View {
                 .fill(Color(nsColor: .separatorColor).opacity(0.22))
                 .frame(width: 1)
         }
+    }
+
+    private func createTaskTapGesture(on day: Date) -> some Gesture {
+        SpatialTapGesture(count: 2)
+            .onEnded { value in
+                let range = CalendarInteractionService.newTaskRange(
+                    on: day,
+                    locationY: value.location.y,
+                    hourHeight: hourHeight
+                )
+                onCreateTaskSchedule(.timed(start: range.start, end: range.end))
+            }
     }
 
     private var currentTimeLine: some View {

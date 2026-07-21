@@ -86,6 +86,7 @@ struct RootView: View {
     @State private var calendarMode: CalendarMode = .week
     @State private var createTaskRequest: TaskCreationRequest?
     @State private var editingTask: TaskItem?
+    @State private var calendarEditingTask: TaskItem?
     @State private var editingList: TaskList?
     @State private var isCreatingList = false
     @State private var newListName = ""
@@ -172,17 +173,35 @@ struct RootView: View {
     }
 
     private var calendarWorkspace: some View {
-        VStack(spacing: 0) {
-            calendarHeader
-            Divider()
-            PlannerCalendarView(
-                tasks: calendarTasks,
-                selectedDate: $selectedDate,
-                mode: $calendarMode,
-                onEditTask: { editingTask = $0 },
-                onUpdateTaskSchedule: updateTaskSchedule
-            )
+        ZStack(alignment: .topTrailing) {
+            VStack(spacing: 0) {
+                calendarHeader
+                Divider()
+                PlannerCalendarView(
+                    tasks: calendarTasks,
+                    selectedDate: $selectedDate,
+                    mode: $calendarMode,
+                    onEditTask: { calendarEditingTask = $0 },
+                    onUpdateTaskSchedule: updateTaskSchedule,
+                    onCreateTaskSchedule: createCalendarTask
+                )
+            }
+
+            if let calendarEditingTask {
+                CalendarTaskInlineEditor(
+                    task: calendarEditingTask,
+                    lists: activeLists,
+                    onSave: saveCalendarTaskInlineEdit,
+                    onDelete: deleteCalendarTaskFromInlineEdit,
+                    onDismiss: { self.calendarEditingTask = nil }
+                )
+                .padding(.top, 96)
+                .padding(.trailing, 26)
+                .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .topTrailing)))
+                .zIndex(30)
+            }
         }
+        .animation(.snappy(duration: 0.16), value: calendarEditingTask?.id)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
     }
@@ -207,14 +226,12 @@ struct RootView: View {
             Spacer()
 
             Button {
-                showCreateTask(
-                    scheduledOn: selectedDate,
-                    allDay: calendarMode == .month
-                )
+                createCalendarTask(defaultCalendarTaskSchedule())
             } label: {
-                Label("New Task", systemImage: "plus")
+                Image(systemName: "plus")
+                    .font(.system(size: 14, weight: .semibold))
             }
-            .buttonStyle(CalRemPillButtonStyle(isProminent: true))
+            .buttonStyle(CalRemIconButtonStyle(size: 30))
             .help("Create task on selected date")
 
             Picker("Calendar View", selection: $calendarMode) {
@@ -224,7 +241,7 @@ struct RootView: View {
             }
             .labelsHidden()
             .pickerStyle(.segmented)
-            .frame(width: 210)
+            .frame(width: 188)
 
             Button {
                 selectedDate = calendarService.previousDate(from: selectedDate, mode: calendarMode)
@@ -436,6 +453,52 @@ struct RootView: View {
         }
     }
 
+    private func createCalendarTask(_ schedule: CalendarTaskDraftSchedule) {
+        guard let list = selectedList ?? activeLists.first else { return }
+
+        let task = TaskItem(title: "New Task", list: list)
+        task.apply(schedule: taskSchedule(from: schedule))
+        modelContext.insert(task)
+        selectedDate = schedule.start
+        workspace = .calendar
+        try? modelContext.save()
+        calendarEditingTask = task
+    }
+
+    private func saveCalendarTaskInlineEdit(_ task: TaskItem, payload: CalendarTaskInlineEditorPayload) {
+        guard let list = list(with: payload.listID) ?? task.list ?? activeLists.first else { return }
+
+        task.title = payload.title
+        task.notes = payload.notes
+        task.list = list
+        task.isCompleted = payload.isCompleted
+        task.completedAt = payload.isCompleted ? (task.completedAt ?? .now) : nil
+        task.apply(schedule: payload.schedule)
+        task.reminderDate = payload.reminderDate
+        task.notificationIdentifier = payload.reminderDate == nil ? nil : task.notificationID
+        task.touch()
+        selectedDate = task.calendarStart ?? selectedDate
+        try? modelContext.save()
+
+        let reminderPayload = ReminderPayload(
+            taskID: task.id,
+            title: task.title,
+            notes: task.notes,
+            reminderDate: task.reminderDate,
+            isCompleted: task.isCompleted
+        )
+        Task {
+            await NotificationScheduler.shared.sync(reminderPayload)
+        }
+
+        calendarEditingTask = nil
+    }
+
+    private func deleteCalendarTaskFromInlineEdit(_ task: TaskItem) {
+        calendarEditingTask = nil
+        deleteTask(task)
+    }
+
     private func updateTaskSchedule(_ task: TaskItem, start: Date, end: Date) {
         let minimumEnd = Calendar.current.date(
             byAdding: .second,
@@ -465,6 +528,59 @@ struct RootView: View {
         Task {
             await NotificationScheduler.shared.sync(payload)
         }
+    }
+
+    private func defaultCalendarTaskSchedule() -> CalendarTaskDraftSchedule {
+        if calendarMode == .month {
+            return .allDay(on: selectedDate)
+        }
+
+        let calendar = Calendar.current
+        let start: Date
+
+        if calendar.isDateInToday(selectedDate) {
+            let now = Date()
+            let minutes = calendar.dateComponents([.minute], from: now).minute ?? 0
+            let minutesToAdd = minutes % CalendarInteractionService.snapIntervalMinutes == 0
+                ? CalendarInteractionService.snapIntervalMinutes
+                : CalendarInteractionService.snapIntervalMinutes - (minutes % CalendarInteractionService.snapIntervalMinutes)
+            start = calendar.date(byAdding: .minute, value: minutesToAdd, to: now) ?? now
+        } else {
+            start = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: selectedDate) ?? selectedDate
+        }
+
+        let startComponents = calendar.dateComponents([.hour, .minute], from: start)
+        let minutesFromStartOfDay = (startComponents.hour ?? 9) * 60 + (startComponents.minute ?? 0)
+        let snapped = CalendarInteractionService.newTaskRange(
+            on: start,
+            locationY: CGFloat(minutesFromStartOfDay) / 60 * CalRemControlStyle.calendarHourHeight,
+            hourHeight: CalRemControlStyle.calendarHourHeight
+        )
+        return .timed(start: snapped.start, end: snapped.end)
+    }
+
+    private func taskSchedule(from draft: CalendarTaskDraftSchedule) -> TaskSchedule {
+        if draft.isAllDay {
+            return TaskSchedule(
+                dueDate: Calendar.current.startOfDay(for: draft.start),
+                startDate: nil,
+                endDate: nil,
+                isAllDay: true
+            )
+        }
+
+        let end = draft.end
+            ?? Calendar.current.date(
+                byAdding: .minute,
+                value: CalendarInteractionService.minimumDurationMinutes,
+                to: draft.start
+            )
+        return TaskSchedule(
+            dueDate: draft.start,
+            startDate: draft.start,
+            endDate: end,
+            isAllDay: false
+        )
     }
 
     private func deleteList(_ list: TaskList) {

@@ -5,6 +5,7 @@ struct WeekCalendarView: View {
     @Binding var selectedDate: Date
     let onEditTask: (TaskItem) -> Void
     let onUpdateTaskSchedule: (TaskItem, Date, Date) -> Void
+    let onCreateTaskSchedule: (CalendarTaskDraftSchedule) -> Void
 
     private let calendarService = CalendarDateService()
     private let hourHeight = CalRemControlStyle.calendarHourHeight
@@ -93,6 +94,8 @@ struct WeekCalendarView: View {
                     Color.clear.frame(height: hourHeight - 1)
                 }
             }
+            .contentShape(Rectangle())
+            .gesture(createTaskTapGesture(on: day))
 
             if calendarService.isToday(day) {
                 currentTimeLine
@@ -128,6 +131,9 @@ struct WeekCalendarView: View {
                 .frame(width: 1)
         }
         .contentShape(Rectangle())
+        .onTapGesture(count: 2) {
+            onCreateTaskSchedule(.allDay(on: day))
+        }
         .onTapGesture {
             selectedDate = day
         }
@@ -208,6 +214,19 @@ struct WeekCalendarView: View {
         }
 
         return CalendarTaskLayoutService.placements(for: inputs)
+    }
+
+    private func createTaskTapGesture(on day: Date) -> some Gesture {
+        SpatialTapGesture(count: 2)
+            .onEnded { value in
+                let range = CalendarInteractionService.newTaskRange(
+                    on: day,
+                    locationY: value.location.y,
+                    hourHeight: hourHeight
+                )
+                selectedDate = day
+                onCreateTaskSchedule(.timed(start: range.start, end: range.end))
+            }
     }
 }
 

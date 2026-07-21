@@ -44,6 +44,29 @@ enum CalendarInteractionService {
         return (start, clampedEnd)
     }
 
+    static func newTaskRange(
+        on day: Date,
+        locationY: CGFloat,
+        hourHeight: CGFloat,
+        calendar: Calendar = .current
+    ) -> (start: Date, end: Date) {
+        guard hourHeight > 0 else {
+            let start = calendar.startOfDay(for: day)
+            let end = calendar.date(byAdding: .minute, value: minimumDurationMinutes, to: start) ?? start
+            return (start, end)
+        }
+
+        let rawMinutes = max(0, Double(locationY / hourHeight) * 60)
+        let snappedMinutes = Int((rawMinutes / Double(snapIntervalMinutes)).rounded()) * snapIntervalMinutes
+        let latestStartMinute = (24 * 60) - minimumDurationMinutes
+        let startMinute = min(max(snappedMinutes, 0), latestStartMinute)
+        let dayStart = calendar.startOfDay(for: day)
+        let start = calendar.date(byAdding: .minute, value: startMinute, to: dayStart) ?? dayStart
+        let end = calendar.date(byAdding: .minute, value: minimumDurationMinutes, to: start) ?? start
+
+        return (start, end)
+    }
+
     private static func durationMinutes(start: Date, end: Date) -> Int {
         max(Int(end.timeIntervalSince(start) / 60), minimumDurationMinutes)
     }
