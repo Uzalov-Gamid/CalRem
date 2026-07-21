@@ -55,4 +55,48 @@ final class TaskScheduleValidatorTests: XCTestCase {
 
         XCTAssertEqual(schedule.endDate?.timeIntervalSince(schedule.startDate!), TaskScheduleValidator.defaultDuration)
     }
+
+    func testWeekdayRecurrenceSkipsWeekend() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let friday = calendar.date(from: DateComponents(year: 2026, month: 7, day: 24, hour: 9, minute: 0))!
+
+        let nextDate = TaskRecurrenceRule.weekdays.nextDate(after: friday, calendar: calendar)
+
+        XCTAssertEqual(calendar.component(.weekday, from: nextDate!), 2)
+        XCTAssertEqual(calendar.component(.day, from: nextDate!), 27)
+    }
+
+    func testNextRecurringInstancePreservesScheduleAndMetadata() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let start = calendar.date(from: DateComponents(year: 2026, month: 7, day: 21, hour: 9, minute: 0))!
+        let end = calendar.date(from: DateComponents(year: 2026, month: 7, day: 21, hour: 10, minute: 30))!
+        let reminder = calendar.date(from: DateComponents(year: 2026, month: 7, day: 21, hour: 8, minute: 45))!
+        let list = TaskList(name: "Work")
+        let task = TaskItem(
+            title: "Daily planning",
+            notes: "Keep the day tidy",
+            list: list,
+            dueDate: start,
+            startDate: start,
+            endDate: end,
+            reminderDate: reminder,
+            priority: .high,
+            recurrenceRule: .daily
+        )
+
+        let nextTask = task.nextRecurringInstance(calendar: calendar)
+
+        XCTAssertEqual(nextTask?.title, task.title)
+        XCTAssertEqual(nextTask?.notes, task.notes)
+        XCTAssertEqual(nextTask?.list?.id, list.id)
+        XCTAssertEqual(nextTask?.priority, .high)
+        XCTAssertEqual(nextTask?.recurrenceRule, .daily)
+        XCTAssertFalse(nextTask?.isCompleted ?? true)
+        XCTAssertEqual(nextTask?.startDate, calendar.date(byAdding: .day, value: 1, to: start))
+        XCTAssertEqual(nextTask?.endDate, calendar.date(byAdding: .day, value: 1, to: end))
+        XCTAssertEqual(nextTask?.reminderDate, calendar.date(byAdding: .day, value: 1, to: reminder))
+        XCTAssertNotNil(nextTask?.notificationIdentifier)
+    }
 }

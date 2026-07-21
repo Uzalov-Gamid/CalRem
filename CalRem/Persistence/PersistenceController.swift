@@ -86,6 +86,47 @@ struct PersistenceController {
     }
 
     private static let exampleSeedMarker = "CalRem example seed"
+    private static let recurringExampleSeedMarker = "CalRem recurring example seed"
+
+    static func seedRecurringExamplesIfNeeded(in context: ModelContext) {
+        let taskDescriptor = FetchDescriptor<TaskItem>()
+        let existingTasks = (try? context.fetch(taskDescriptor)) ?? []
+        guard !existingTasks.contains(where: { $0.notes.contains(recurringExampleSeedMarker) }) else { return }
+
+        let listDescriptor = FetchDescriptor<TaskList>()
+        let existingLists = (try? context.fetch(listDescriptor)) ?? []
+        let routine = list(named: "Routine", color: .orange, symbolName: "sun.max", sortOrder: 1, existingLists: existingLists, context: context)
+        let work = list(named: "Work", color: .indigo, symbolName: "briefcase", sortOrder: 2, existingLists: existingLists, context: context)
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now)
+        let friday = nextWeekday(6, from: today, calendar: calendar)
+
+        insertTimedTask(
+            "Hydrate and vitamins",
+            notes: recurringExampleSeedMarker,
+            list: routine,
+            day: today,
+            hour: 7,
+            minute: 0,
+            durationMinutes: 15,
+            recurrenceRule: .daily,
+            context: context
+        )
+        insertTimedTask(
+            "Weekly planning review",
+            notes: recurringExampleSeedMarker,
+            list: work,
+            day: friday,
+            hour: 16,
+            minute: 0,
+            durationMinutes: 45,
+            recurrenceRule: .weekly,
+            context: context
+        )
+
+        try? context.save()
+    }
 
     private static func seedPreviewData(in context: ModelContext) {
         let inbox = TaskList(name: "Inbox", colorName: ListColor.blue.rawValue, symbolName: "tray")
@@ -133,25 +174,42 @@ struct PersistenceController {
 
     private static func insertTimedTask(
         _ title: String,
+        notes: String? = nil,
         list: TaskList,
         day: Date,
         hour: Int,
         minute: Int,
         durationMinutes: Int,
+        recurrenceRule: TaskRecurrenceRule = .none,
         context: ModelContext,
         calendar: Calendar = .current
     ) {
         let start = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day) ?? day
         let end = calendar.date(byAdding: .minute, value: durationMinutes, to: start) ?? start
+        let taskNotes = notes ?? exampleSeedMarker
         let task = TaskItem(
             title: title,
-            notes: exampleSeedMarker,
+            notes: taskNotes,
             list: list,
             dueDate: start,
             startDate: start,
-            endDate: end
+            endDate: end,
+            recurrenceRule: recurrenceRule
         )
         context.insert(task)
+    }
+
+    private static func nextWeekday(_ weekday: Int, from date: Date, calendar: Calendar) -> Date {
+        var candidate = date
+
+        for _ in 0..<7 {
+            if calendar.component(.weekday, from: candidate) == weekday {
+                return candidate
+            }
+            candidate = calendar.date(byAdding: .day, value: 1, to: candidate) ?? candidate
+        }
+
+        return date
     }
 
     private static func insertAllDayTask(

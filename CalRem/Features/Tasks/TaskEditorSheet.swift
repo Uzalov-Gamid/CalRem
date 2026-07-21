@@ -23,6 +23,7 @@ struct TaskEditorSheet: View {
     @State private var hasReminder: Bool
     @State private var reminderDate: Date
     @State private var priority: TaskPriority
+    @State private var recurrenceRule: TaskRecurrenceRule
 
     init(
         task: TaskItem?,
@@ -55,6 +56,7 @@ struct TaskEditorSheet: View {
         _hasReminder = State(initialValue: task?.reminderDate != nil)
         _reminderDate = State(initialValue: task?.reminderDate ?? startTime)
         _priority = State(initialValue: task?.priority ?? .none)
+        _recurrenceRule = State(initialValue: task?.recurrenceRule ?? .none)
     }
 
     var body: some View {
@@ -91,6 +93,13 @@ struct TaskEditorSheet: View {
                             DatePicker("End", selection: $endTime, displayedComponents: .hourAndMinute)
                         }
                     }
+
+                    Picker("Repeat", selection: $recurrenceRule) {
+                        ForEach(TaskRecurrenceRule.allCases) { rule in
+                            Text(rule.title).tag(rule)
+                        }
+                    }
+                    .disabled(!hasDate)
                 }
 
                 Section("Reminder") {
@@ -123,6 +132,11 @@ struct TaskEditorSheet: View {
         }
         .padding(24)
         .frame(width: 460, height: 620)
+        .onChange(of: hasDate) { _, hasDate in
+            if !hasDate {
+                recurrenceRule = .none
+            }
+        }
     }
 
     private var trimmedTitle: String {
@@ -161,12 +175,14 @@ struct TaskEditorSheet: View {
         )
 
         let target = task ?? TaskItem(title: trimmedTitle, list: list)
+        let wasCompleted = target.isCompleted
         target.title = trimmedTitle
         target.notes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
         target.list = list
         target.isCompleted = isCompleted
         target.completedAt = isCompleted ? (target.completedAt ?? .now) : nil
         target.priority = priority
+        target.recurrenceRule = hasDate ? recurrenceRule : .none
         target.apply(schedule: normalized)
         target.reminderDate = hasReminder ? reminderDate : nil
         target.notificationIdentifier = hasReminder ? target.notificationID : nil
@@ -174,6 +190,10 @@ struct TaskEditorSheet: View {
 
         if task == nil {
             modelContext.insert(target)
+        }
+
+        if !wasCompleted, target.isCompleted {
+            createNextRecurringInstanceIfNeeded(from: target)
         }
 
         try? modelContext.save()
@@ -195,5 +215,36 @@ struct TaskEditorSheet: View {
     private var selectedList: TaskList? {
         guard let selectedListID else { return defaultList ?? lists.first }
         return lists.first { $0.id == selectedListID } ?? defaultList ?? lists.first
+    }
+
+    private func createNextRecurringInstanceIfNeeded(from task: TaskItem) {
+        guard let nextTask = task.nextRecurringInstance(), !hasExistingRecurringInstance(matching: nextTask, original: task) else {
+            return
+        }
+
+        modelContext.insert(nextTask)
+
+        let payload = ReminderPayload(
+            taskID: nextTask.id,
+            title: nextTask.title,
+            notes: nextTask.notes,
+            reminderDate: nextTask.reminderDate,
+            isCompleted: nextTask.isCompleted
+        )
+        Task {
+            await NotificationScheduler.shared.sync(payload)
+        }
+    }
+
+    private func hasExistingRecurringInstance(matching candidate: TaskItem, original: TaskItem) -> Bool {
+        let descriptor = FetchDescriptor<TaskItem>()
+        let existingTasks = (try? modelContext.fetch(descriptor)) ?? []
+        return existingTasks.contains { task in
+            guard task.id != original.id else { return false }
+            return task.title == candidate.title
+                && task.list?.id == candidate.list?.id
+                && task.recurrenceRule == candidate.recurrenceRule
+                && task.calendarStart == candidate.calendarStart
+        }
     }
 }
