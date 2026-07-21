@@ -67,6 +67,33 @@ enum CalendarInteractionService {
         return (start, end)
     }
 
+    static func newTaskRange(
+        on day: Date,
+        startY: CGFloat,
+        currentY: CGFloat,
+        hourHeight: CGFloat,
+        calendar: Calendar = .current
+    ) -> (start: Date, end: Date) {
+        guard hourHeight > 0 else {
+            return newTaskRange(on: day, locationY: startY, hourHeight: hourHeight, calendar: calendar)
+        }
+
+        let firstMinute = snappedMinute(for: startY, hourHeight: hourHeight)
+        let secondMinute = snappedMinute(for: currentY, hourHeight: hourHeight)
+        let lowerMinute = min(firstMinute, secondMinute)
+        let upperMinute = max(firstMinute, secondMinute)
+        let startMinute = min(max(lowerMinute, 0), (24 * 60) - minimumDurationMinutes)
+        let minimumEndMinute = startMinute + minimumDurationMinutes
+        let endMinute = min(max(upperMinute, minimumEndMinute), 24 * 60)
+        let dayStart = calendar.startOfDay(for: day)
+        let start = calendar.date(byAdding: .minute, value: startMinute, to: dayStart) ?? dayStart
+        let end = calendar.date(byAdding: .minute, value: endMinute, to: dayStart)
+            ?? calendar.date(byAdding: .minute, value: minimumDurationMinutes, to: start)
+            ?? start
+
+        return (start, end)
+    }
+
     private static func durationMinutes(start: Date, end: Date) -> Int {
         max(Int(end.timeIntervalSince(start) / 60), minimumDurationMinutes)
     }
@@ -74,6 +101,13 @@ enum CalendarInteractionService {
     private static func snappedMinuteDelta(for points: CGFloat, hourHeight: CGFloat) -> Int {
         guard hourHeight > 0 else { return 0 }
         let rawMinutes = Double(points / hourHeight) * 60
+        let snappedSteps = (rawMinutes / Double(snapIntervalMinutes)).rounded()
+        return Int(snappedSteps) * snapIntervalMinutes
+    }
+
+    private static func snappedMinute(for points: CGFloat, hourHeight: CGFloat) -> Int {
+        guard hourHeight > 0 else { return 0 }
+        let rawMinutes = max(0, Double(points / hourHeight) * 60)
         let snappedSteps = (rawMinutes / Double(snapIntervalMinutes)).rounded()
         return Int(snappedSteps) * snapIntervalMinutes
     }

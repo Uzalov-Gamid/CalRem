@@ -84,4 +84,37 @@ struct CalendarInteractionServiceTests {
         #expect(calendar.component(.minute, from: result.start) == 45)
         #expect(result.end == calendar.date(byAdding: .day, value: 1, to: day))
     }
+
+    @Test func testDragCreatedRangeUsesDraggedDuration() throws {
+        let day = try #require(calendar.date(from: DateComponents(year: 2026, month: 7, day: 21)))
+
+        let result = CalendarInteractionService.newTaskRange(
+            on: day,
+            startY: 2.25 * 64,
+            currentY: 4.75 * 64,
+            hourHeight: 64,
+            calendar: calendar
+        )
+
+        #expect(calendar.component(.hour, from: result.start) == 2)
+        #expect(calendar.component(.minute, from: result.start) == 15)
+        #expect(calendar.component(.hour, from: result.end) == 4)
+        #expect(calendar.component(.minute, from: result.end) == 45)
+    }
+
+    @Test func testDragCreatedRangeSupportsUpwardDragAndMinimumDuration() throws {
+        let day = try #require(calendar.date(from: DateComponents(year: 2026, month: 7, day: 21)))
+
+        let result = CalendarInteractionService.newTaskRange(
+            on: day,
+            startY: 9.1 * 64,
+            currentY: 9.0 * 64,
+            hourHeight: 64,
+            calendar: calendar
+        )
+
+        #expect(calendar.component(.hour, from: result.start) == 9)
+        #expect(calendar.component(.minute, from: result.start) == 0)
+        #expect(result.end.timeIntervalSince(result.start) == 15 * 60)
+    }
 }

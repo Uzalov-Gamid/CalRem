@@ -10,6 +10,7 @@ struct DayCalendarView: View {
     private let calendarService = CalendarDateService()
     private let hourHeight = CalRemControlStyle.calendarHourHeight
     private let timeColumnWidth = CalRemControlStyle.calendarTimeColumnWidth
+    @State private var creationPreview: CalendarTaskDraftSchedule?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -95,12 +96,23 @@ struct DayCalendarView: View {
             }
             .contentShape(Rectangle())
             .gesture(createTaskTapGesture(on: selectedDate))
+            .simultaneousGesture(dragToCreateGesture(on: selectedDate))
 
             if calendarService.isToday(selectedDate) {
                 currentTimeLine
             }
 
             GeometryReader { proxy in
+                if let preview = creationPreview, let end = preview.end {
+                    CalendarTaskCreationPreviewBlock(start: preview.start, end: end)
+                        .frame(
+                            width: max(proxy.size.width - 16, 52),
+                            height: previewHeight(for: preview)
+                        )
+                        .offset(x: 8, y: previewOffset(for: preview))
+                        .zIndex(18)
+                }
+
                 ForEach(timedTasks) { task in
                     let placement = placements[task.id] ?? TimedTaskPlacement(id: task.id, column: 0, columnCount: 1)
                     let gutter: CGFloat = 8
@@ -140,6 +152,29 @@ struct DayCalendarView: View {
                     hourHeight: hourHeight
                 )
                 onCreateTaskSchedule(.timed(start: range.start, end: range.end))
+        }
+    }
+
+    private func dragToCreateGesture(on day: Date) -> some Gesture {
+        DragGesture(minimumDistance: 6, coordinateSpace: .local)
+            .onChanged { value in
+                let range = CalendarInteractionService.newTaskRange(
+                    on: day,
+                    startY: value.startLocation.y,
+                    currentY: value.location.y,
+                    hourHeight: hourHeight
+                )
+                creationPreview = .timed(start: range.start, end: range.end)
+            }
+            .onEnded { value in
+                let range = CalendarInteractionService.newTaskRange(
+                    on: day,
+                    startY: value.startLocation.y,
+                    currentY: value.location.y,
+                    hourHeight: hourHeight
+                )
+                creationPreview = nil
+                onCreateTaskSchedule(.timed(start: range.start, end: range.end))
             }
     }
 
@@ -166,6 +201,15 @@ struct DayCalendarView: View {
 
     private func blockHeight(for task: TaskItem) -> CGFloat {
         max(CGFloat(task.duration / 3600) * hourHeight, 32)
+    }
+
+    private func previewOffset(for preview: CalendarTaskDraftSchedule) -> CGFloat {
+        CGFloat(calendarService.minutesFromStartOfDay(for: preview.start)) / 60 * hourHeight
+    }
+
+    private func previewHeight(for preview: CalendarTaskDraftSchedule) -> CGFloat {
+        guard let end = preview.end else { return 32 }
+        return max(CGFloat(end.timeIntervalSince(preview.start) / 3600) * hourHeight, 32)
     }
 
     private func layoutPlacements(for tasks: [TaskItem]) -> [UUID: TimedTaskPlacement] {
