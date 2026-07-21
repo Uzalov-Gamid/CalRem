@@ -7,6 +7,7 @@ struct PlannerCalendarView: View {
     let onEditTask: (TaskItem) -> Void
     let onUpdateTaskSchedule: (TaskItem, Date, Date) -> Void
     let onCreateTaskSchedule: (CalendarTaskDraftSchedule) -> Void
+    let onScheduleExistingTask: (UUID, Date, Date) -> Void
 
     var body: some View {
         Group {
@@ -24,7 +25,8 @@ struct PlannerCalendarView: View {
                     selectedDate: $selectedDate,
                     onEditTask: onEditTask,
                     onUpdateTaskSchedule: onUpdateTaskSchedule,
-                    onCreateTaskSchedule: onCreateTaskSchedule
+                    onCreateTaskSchedule: onCreateTaskSchedule,
+                    onScheduleExistingTask: onScheduleExistingTask
                 )
             case .day:
                 DayCalendarView(
@@ -32,7 +34,8 @@ struct PlannerCalendarView: View {
                     selectedDate: $selectedDate,
                     onEditTask: onEditTask,
                     onUpdateTaskSchedule: onUpdateTaskSchedule,
-                    onCreateTaskSchedule: onCreateTaskSchedule
+                    onCreateTaskSchedule: onCreateTaskSchedule,
+                    onScheduleExistingTask: onScheduleExistingTask
                 )
             }
         }

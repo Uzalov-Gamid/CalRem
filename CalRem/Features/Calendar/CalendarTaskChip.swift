@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct CalendarTaskChip: View {
     let task: TaskItem
@@ -125,5 +126,63 @@ struct CalendarTaskCreationPreviewBlock: View {
                 .stroke(Color.accentColor.opacity(0.45), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
         }
         .allowsHitTesting(false)
+    }
+}
+
+struct CalendarTaskTimelineDropDelegate: DropDelegate {
+    let day: Date
+    let hourHeight: CGFloat
+    @Binding var preview: CalendarTaskDraftSchedule?
+    let onScheduleTaskID: (UUID, Date, Date) -> Void
+
+    func validateDrop(info: DropInfo) -> Bool {
+        info.hasItemsConforming(to: [UTType.plainText])
+    }
+
+    func dropEntered(info: DropInfo) {
+        updatePreview(for: info.location.y)
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        updatePreview(for: info.location.y)
+        return DropProposal(operation: .move)
+    }
+
+    func dropExited(info: DropInfo) {
+        preview = nil
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        let range = CalendarInteractionService.newTaskRange(
+            on: day,
+            locationY: info.location.y,
+            hourHeight: hourHeight
+        )
+        let providers = info.itemProviders(for: [UTType.plainText])
+        preview = nil
+
+        guard let provider = providers.first else { return false }
+
+        provider.loadObject(ofClass: NSString.self) { object, _ in
+            guard let rawValue = object as? String,
+                  let taskID = UUID(uuidString: rawValue) else {
+                return
+            }
+
+            DispatchQueue.main.async {
+                onScheduleTaskID(taskID, range.start, range.end)
+            }
+        }
+
+        return true
+    }
+
+    private func updatePreview(for locationY: CGFloat) {
+        let range = CalendarInteractionService.newTaskRange(
+            on: day,
+            locationY: locationY,
+            hourHeight: hourHeight
+        )
+        preview = .timed(start: range.start, end: range.end)
     }
 }

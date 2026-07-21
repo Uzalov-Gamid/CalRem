@@ -6,11 +6,13 @@ struct DayCalendarView: View {
     let onEditTask: (TaskItem) -> Void
     let onUpdateTaskSchedule: (TaskItem, Date, Date) -> Void
     let onCreateTaskSchedule: (CalendarTaskDraftSchedule) -> Void
+    let onScheduleExistingTask: (UUID, Date, Date) -> Void
 
     private let calendarService = CalendarDateService()
     private let hourHeight = CalRemControlStyle.calendarHourHeight
     private let timeColumnWidth = CalRemControlStyle.calendarTimeColumnWidth
     @State private var creationPreview: CalendarTaskDraftSchedule?
+    @State private var dropPreview: CalendarTaskDraftSchedule?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -103,7 +105,7 @@ struct DayCalendarView: View {
             }
 
             GeometryReader { proxy in
-                if let preview = creationPreview, let end = preview.end {
+                if let preview = activePreview, let end = preview.end {
                     CalendarTaskCreationPreviewBlock(start: preview.start, end: end)
                         .frame(
                             width: max(proxy.size.width - 16, 52),
@@ -136,6 +138,15 @@ struct DayCalendarView: View {
         .frame(maxWidth: .infinity)
         .frame(height: hourHeight * 24)
         .background(Color(nsColor: .textBackgroundColor))
+        .onDrop(
+            of: [.plainText],
+            delegate: CalendarTaskTimelineDropDelegate(
+                day: selectedDate,
+                hourHeight: hourHeight,
+                preview: $dropPreview,
+                onScheduleTaskID: onScheduleExistingTask
+            )
+        )
         .overlay(alignment: .leading) {
             Rectangle()
                 .fill(Color(nsColor: .separatorColor).opacity(0.22))
@@ -192,6 +203,10 @@ struct DayCalendarView: View {
         tasks
             .filter { $0.occurs(on: selectedDate) }
             .sorted { ($0.calendarStart ?? .distantFuture) < ($1.calendarStart ?? .distantFuture) }
+    }
+
+    private var activePreview: CalendarTaskDraftSchedule? {
+        creationPreview ?? dropPreview
     }
 
     private func blockOffset(for task: TaskItem) -> CGFloat {
