@@ -16,6 +16,7 @@
 		CA0000000000000000000206 /* CalendarDateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000106 /* CalendarDateService.swift */; };
 		CA0000000000000000000207 /* TaskScheduleValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000107 /* TaskScheduleValidator.swift */; };
 		CA0000000000000000000222 /* CalendarTaskLayoutService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000122 /* CalendarTaskLayoutService.swift */; };
+		CA0000000000000000000224 /* CalendarInteractionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000124 /* CalendarInteractionService.swift */; };
 		CA0000000000000000000208 /* NotificationScheduling.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000108 /* NotificationScheduling.swift */; };
 		CA0000000000000000000209 /* ListColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000109 /* ListColor.swift */; };
 		CA0000000000000000000210 /* DateFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000110 /* DateFormatters.swift */; };
@@ -34,6 +35,7 @@
 		CA0000000000000000000400 /* CalendarDateServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000300 /* CalendarDateServiceTests.swift */; };
 		CA0000000000000000000401 /* TaskScheduleValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000301 /* TaskScheduleValidatorTests.swift */; };
 		CA0000000000000000000402 /* CalendarTaskLayoutServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000302 /* CalendarTaskLayoutServiceTests.swift */; };
+		CA0000000000000000000403 /* CalendarInteractionServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000303 /* CalendarInteractionServiceTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -58,6 +60,7 @@
 		CA0000000000000000000106 /* CalendarDateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/Calendar/CalendarDateService.swift; sourceTree = "<group>"; };
 		CA0000000000000000000107 /* TaskScheduleValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/Calendar/TaskScheduleValidator.swift; sourceTree = "<group>"; };
 		CA0000000000000000000122 /* CalendarTaskLayoutService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/Calendar/CalendarTaskLayoutService.swift; sourceTree = "<group>"; };
+		CA0000000000000000000124 /* CalendarInteractionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/Calendar/CalendarInteractionService.swift; sourceTree = "<group>"; };
 		CA0000000000000000000108 /* NotificationScheduling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/Notifications/NotificationScheduling.swift; sourceTree = "<group>"; };
 		CA0000000000000000000109 /* ListColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem/ListColor.swift; sourceTree = "<group>"; };
 		CA0000000000000000000110 /* DateFormatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem/DateFormatters.swift; sourceTree = "<group>"; };
@@ -76,6 +79,7 @@
 		CA0000000000000000000300 /* CalendarDateServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarDateServiceTests.swift; sourceTree = "<group>"; };
 		CA0000000000000000000301 /* TaskScheduleValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskScheduleValidatorTests.swift; sourceTree = "<group>"; };
 		CA0000000000000000000302 /* CalendarTaskLayoutServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarTaskLayoutServiceTests.swift; sourceTree = "<group>"; };
+		CA0000000000000000000303 /* CalendarInteractionServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarInteractionServiceTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -126,6 +130,7 @@
 				CA0000000000000000000106 /* CalendarDateService.swift */,
 				CA0000000000000000000107 /* TaskScheduleValidator.swift */,
 				CA0000000000000000000122 /* CalendarTaskLayoutService.swift */,
+				CA0000000000000000000124 /* CalendarInteractionService.swift */,
 				CA0000000000000000000108 /* NotificationScheduling.swift */,
 				CA0000000000000000000109 /* ListColor.swift */,
 				CA0000000000000000000110 /* DateFormatters.swift */,
@@ -151,6 +156,7 @@
 				CA0000000000000000000300 /* CalendarDateServiceTests.swift */,
 				CA0000000000000000000301 /* TaskScheduleValidatorTests.swift */,
 				CA0000000000000000000302 /* CalendarTaskLayoutServiceTests.swift */,
+				CA0000000000000000000303 /* CalendarInteractionServiceTests.swift */,
 			);
 			path = CalRemTests;
 			sourceTree = "<group>";
@@ -262,6 +268,7 @@
 				CA0000000000000000000206 /* CalendarDateService.swift in Sources */,
 				CA0000000000000000000207 /* TaskScheduleValidator.swift in Sources */,
 				CA0000000000000000000222 /* CalendarTaskLayoutService.swift in Sources */,
+				CA0000000000000000000224 /* CalendarInteractionService.swift in Sources */,
 				CA0000000000000000000208 /* NotificationScheduling.swift in Sources */,
 				CA0000000000000000000209 /* ListColor.swift in Sources */,
 				CA0000000000000000000210 /* DateFormatters.swift in Sources */,
@@ -287,6 +294,7 @@
 				CA0000000000000000000400 /* CalendarDateServiceTests.swift in Sources */,
 				CA0000000000000000000401 /* TaskScheduleValidatorTests.swift in Sources */,
 				CA0000000000000000000402 /* CalendarTaskLayoutServiceTests.swift in Sources */,
+				CA0000000000000000000403 /* CalendarInteractionServiceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
