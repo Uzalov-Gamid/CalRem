@@ -6,7 +6,8 @@ struct DayCalendarView: View {
     let onEditTask: (TaskItem) -> Void
 
     private let calendarService = CalendarDateService()
-    private let hourHeight: CGFloat = 60
+    private let hourHeight = CalRemControlStyle.calendarHourHeight
+    private let timeColumnWidth = CalRemControlStyle.calendarTimeColumnWidth
 
     var body: some View {
         VStack(spacing: 0) {
@@ -18,8 +19,9 @@ struct DayCalendarView: View {
                     hourLabels
                     timeline
                 }
-                .padding(.trailing, 20)
+                .padding(.trailing, 12)
             }
+            .background(Color(nsColor: .textBackgroundColor))
         }
     }
 
@@ -30,18 +32,17 @@ struct DayCalendarView: View {
             Text("all-day")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .frame(width: 52, alignment: .trailing)
-                .padding(.top, 14)
+                .frame(width: timeColumnWidth, alignment: .trailing)
+                .frame(minHeight: 44)
+                .padding(.trailing, 10)
 
             if allDayTasks.isEmpty {
-                Text("No all-day tasks")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .padding(.top, 14)
+                Spacer(minLength: 0)
             } else {
                 VStack(spacing: 5) {
                     ForEach(allDayTasks) { task in
                         CalendarTaskChip(task: task)
+                            .contentShape(RoundedRectangle(cornerRadius: CalRemControlStyle.calendarCellRadius, style: .continuous))
                             .onTapGesture {
                                 onEditTask(task)
                             }
@@ -52,20 +53,22 @@ struct DayCalendarView: View {
 
             Spacer()
         }
-        .padding(.horizontal, 14)
-        .frame(minHeight: 52)
+        .padding(.horizontal, 0)
+        .frame(minHeight: 44)
+        .background(Color(nsColor: .textBackgroundColor))
     }
 
     private var hourLabels: some View {
         VStack(spacing: 0) {
             ForEach(0..<24, id: \.self) { hour in
-                Text("\(hour):00")
+                Text(String(format: "%02d:00", hour))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-                    .frame(width: 52, height: hourHeight, alignment: .topTrailing)
-                    .padding(.trailing, 8)
+                    .frame(width: timeColumnWidth, height: hourHeight, alignment: .topTrailing)
+                    .padding(.trailing, 10)
             }
         }
+        .background(Color(nsColor: .textBackgroundColor))
     }
 
     private var timeline: some View {
@@ -76,7 +79,7 @@ struct DayCalendarView: View {
             VStack(spacing: 0) {
                 ForEach(0..<24, id: \.self) { _ in
                     Rectangle()
-                        .fill(Color(nsColor: .separatorColor).opacity(0.28))
+                        .fill(Color(nsColor: .separatorColor).opacity(0.20))
                         .frame(height: 1)
                     Color.clear.frame(height: hourHeight - 1)
                 }
@@ -97,6 +100,7 @@ struct DayCalendarView: View {
                     CalendarTaskBlock(task: task)
                         .frame(width: max(columnWidth - gutter, 52), height: blockHeight(for: task))
                         .offset(x: x, y: blockOffset(for: task))
+                        .contentShape(RoundedRectangle(cornerRadius: CalRemControlStyle.calendarCellRadius, style: .continuous))
                         .onTapGesture {
                             onEditTask(task)
                         }
@@ -105,7 +109,12 @@ struct DayCalendarView: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: hourHeight * 24)
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
+        .background(Color(nsColor: .textBackgroundColor))
+        .overlay(alignment: .leading) {
+            Rectangle()
+                .fill(Color(nsColor: .separatorColor).opacity(0.22))
+                .frame(width: 1)
+        }
     }
 
     private var currentTimeLine: some View {

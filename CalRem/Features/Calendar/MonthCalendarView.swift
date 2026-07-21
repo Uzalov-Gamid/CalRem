@@ -9,15 +9,10 @@ struct MonthCalendarView: View {
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 1), count: 7)
 
     var body: some View {
-        VStack(spacing: 0) {
-            weekdayHeader
-            LazyVGrid(columns: columns, spacing: 1) {
-                ForEach(calendarService.monthGrid(containing: selectedDate), id: \.self) { day in
-                    dayCell(day)
-                }
-            }
-            .padding(12)
+        GeometryReader { proxy in
+            calendarGrid(availableHeight: proxy.size.height)
         }
+        .background(Color(nsColor: .textBackgroundColor))
     }
 
     private var weekdayHeader: some View {
@@ -35,7 +30,25 @@ struct MonthCalendarView: View {
         .padding(.bottom, 6)
     }
 
-    private func dayCell(_ day: Date) -> some View {
+    private func calendarGrid(availableHeight: CGFloat) -> some View {
+        let outerPadding: CGFloat = 12
+        let headerHeight: CGFloat = 32
+        let rowHeight = max((availableHeight - headerHeight - outerPadding * 2 - 5) / 6, 82)
+
+        return VStack(spacing: 0) {
+            weekdayHeader
+                .frame(height: headerHeight)
+
+            LazyVGrid(columns: columns, spacing: 1) {
+                ForEach(calendarService.monthGrid(containing: selectedDate), id: \.self) { day in
+                    dayCell(day, height: rowHeight)
+                }
+            }
+        }
+        .padding(outerPadding)
+    }
+
+    private func dayCell(_ day: Date, height: CGFloat) -> some View {
         let dayTasks = tasks
             .filter { $0.occurs(on: day) }
             .sorted { ($0.calendarStart ?? .distantFuture) < ($1.calendarStart ?? .distantFuture) }
@@ -44,15 +57,10 @@ struct MonthCalendarView: View {
         return VStack(alignment: .leading, spacing: 5) {
             HStack {
                 Text(day.formatted(.dateTime.day()))
-                    .font(.caption.weight(calendarService.isToday(day) ? .bold : .regular))
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 4)
-                    .background(
-                        calendarService.isToday(day)
-                            ? Color.accentColor.opacity(0.18)
-                            : Color.clear,
-                        in: Capsule()
-                    )
+                    .font(.caption.weight(calendarService.isToday(day) || isSelected(day) ? .bold : .semibold))
+                    .frame(minWidth: 26, minHeight: 24)
+                    .background(dayBadgeBackground(for: day), in: Capsule())
+                    .foregroundStyle(isSelected(day) ? Color.white : dayTextColor(for: day))
                 Spacer()
             }
 
@@ -72,11 +80,11 @@ struct MonthCalendarView: View {
             Spacer(minLength: 0)
         }
         .padding(8)
-        .frame(minHeight: 112, maxHeight: .infinity, alignment: .topLeading)
-        .background(backgroundColor(for: day), in: RoundedRectangle(cornerRadius: 4))
+        .frame(height: height, alignment: .topLeading)
+        .background(backgroundColor(for: day), in: RoundedRectangle(cornerRadius: CalRemControlStyle.calendarCellRadius, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 4)
-                .stroke(borderColor(for: day), lineWidth: calendarService.calendar.isDate(day, inSameDayAs: selectedDate) ? 1.5 : 1)
+            RoundedRectangle(cornerRadius: CalRemControlStyle.calendarCellRadius, style: .continuous)
+                .stroke(borderColor(for: day), lineWidth: isSelected(day) ? 1.4 : 1)
         }
         .contentShape(Rectangle())
         .onTapGesture {
@@ -85,22 +93,42 @@ struct MonthCalendarView: View {
     }
 
     private func backgroundColor(for day: Date) -> Color {
-        if calendarService.calendar.isDate(day, inSameDayAs: selectedDate) {
-            return Color.accentColor.opacity(0.08)
+        if isSelected(day) {
+            return Color.accentColor.opacity(0.075)
         }
 
         if calendarService.isSameMonth(day, selectedDate) {
-            return Color(nsColor: .controlBackgroundColor)
+            return Color(nsColor: .textBackgroundColor)
         }
 
-        return Color(nsColor: .controlBackgroundColor).opacity(0.45)
+        return Color(nsColor: .controlBackgroundColor).opacity(0.38)
     }
 
     private func borderColor(for day: Date) -> Color {
-        if calendarService.calendar.isDate(day, inSameDayAs: selectedDate) {
-            return .accentColor.opacity(0.55)
+        if isSelected(day) {
+            return .accentColor.opacity(0.65)
         }
 
-        return Color(nsColor: .separatorColor).opacity(0.35)
+        return Color(nsColor: .separatorColor).opacity(0.24)
+    }
+
+    private func dayBadgeBackground(for day: Date) -> Color {
+        if isSelected(day) {
+            return .accentColor
+        }
+
+        if calendarService.isToday(day) {
+            return Color.accentColor.opacity(0.16)
+        }
+
+        return .clear
+    }
+
+    private func dayTextColor(for day: Date) -> Color {
+        calendarService.isSameMonth(day, selectedDate) ? .primary : .secondary
+    }
+
+    private func isSelected(_ day: Date) -> Bool {
+        calendarService.calendar.isDate(day, inSameDayAs: selectedDate)
     }
 }
