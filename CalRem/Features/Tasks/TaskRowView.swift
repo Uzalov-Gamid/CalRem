@@ -40,6 +40,10 @@ struct TaskRowView: View {
                     if task.reminderDate != nil {
                         metadataPill(title: "Alert", systemImage: "bell")
                     }
+
+                    if task.isRepeating {
+                        metadataPill(title: task.recurrenceRule.shortTitle, systemImage: "repeat")
+                    }
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)

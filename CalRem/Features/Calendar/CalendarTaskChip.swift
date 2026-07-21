@@ -18,6 +18,12 @@ struct CalendarTaskChip: View {
                 Text(DateFormatters.time(start))
                     .foregroundStyle(.secondary)
             }
+
+            if task.isRepeating {
+                Image(systemName: "repeat")
+                    .font(.system(size: compact ? 8 : 10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
         }
         .font(compact ? .caption2 : .caption)
         .padding(.horizontal, compact ? 5 : 7)
@@ -53,9 +59,17 @@ struct CalendarTaskBlock: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(task.title)
-                .font(.caption.weight(.semibold))
-                .lineLimit(2)
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(task.title)
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(2)
+
+                if task.isRepeating {
+                    Image(systemName: "repeat")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.secondary)
+                }
+            }
 
             if let start = task.calendarStart, let end = task.calendarEnd {
                 Text("\(DateFormatters.time(start)) - \(DateFormatters.time(end))")

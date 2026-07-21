@@ -7,6 +7,7 @@ struct CalendarTaskInlineEditorPayload {
     let isCompleted: Bool
     let schedule: TaskSchedule
     let reminderDate: Date?
+    let recurrenceRule: TaskRecurrenceRule
 }
 
 struct CalendarTaskInlineEditor: View {
@@ -26,6 +27,7 @@ struct CalendarTaskInlineEditor: View {
     @State private var endTime: Date
     @State private var hasReminder: Bool
     @State private var reminderDate: Date
+    @State private var recurrenceRule: TaskRecurrenceRule
     @FocusState private var titleIsFocused: Bool
 
     init(
@@ -58,6 +60,7 @@ struct CalendarTaskInlineEditor: View {
         _endTime = State(initialValue: end)
         _hasReminder = State(initialValue: task.reminderDate != nil)
         _reminderDate = State(initialValue: task.reminderDate ?? start)
+        _recurrenceRule = State(initialValue: task.recurrenceRule)
     }
 
     var body: some View {
@@ -190,6 +193,13 @@ struct CalendarTaskInlineEditor: View {
                 DatePicker("Reminder", selection: $reminderDate, displayedComponents: [.date, .hourAndMinute])
                     .datePickerStyle(.compact)
             }
+
+            Picker("Repeat", selection: $recurrenceRule) {
+                ForEach(TaskRecurrenceRule.allCases) { rule in
+                    Text(rule.title).tag(rule)
+                }
+            }
+            .pickerStyle(.menu)
         }
         .font(.callout)
         .padding(14)
@@ -259,7 +269,8 @@ struct CalendarTaskInlineEditor: View {
             listID: selectedListID,
             isCompleted: isCompleted,
             schedule: schedule,
-            reminderDate: hasReminder ? reminderDate : nil
+            reminderDate: hasReminder ? reminderDate : nil,
+            recurrenceRule: recurrenceRule
         )
         onSave(task, payload)
     }

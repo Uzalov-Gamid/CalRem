@@ -1,6 +1,85 @@
 import Foundation
 import SwiftData
 
+enum TaskRecurrenceRule: String, CaseIterable, Identifiable {
+    case none
+    case daily
+    case weekdays
+    case weekly
+    case monthly
+    case yearly
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .none:
+            "Never"
+        case .daily:
+            "Daily"
+        case .weekdays:
+            "Weekdays"
+        case .weekly:
+            "Weekly"
+        case .monthly:
+            "Monthly"
+        case .yearly:
+            "Yearly"
+        }
+    }
+
+    var shortTitle: String {
+        switch self {
+        case .none:
+            "No repeat"
+        case .daily:
+            "Daily"
+        case .weekdays:
+            "Weekdays"
+        case .weekly:
+            "Weekly"
+        case .monthly:
+            "Monthly"
+        case .yearly:
+            "Yearly"
+        }
+    }
+
+    func nextDate(after date: Date, calendar: Calendar = .current) -> Date? {
+        switch self {
+        case .none:
+            nil
+        case .daily:
+            calendar.date(byAdding: .day, value: 1, to: date)
+        case .weekdays:
+            nextWeekday(after: date, calendar: calendar)
+        case .weekly:
+            calendar.date(byAdding: .weekOfYear, value: 1, to: date)
+        case .monthly:
+            calendar.date(byAdding: .month, value: 1, to: date)
+        case .yearly:
+            calendar.date(byAdding: .year, value: 1, to: date)
+        }
+    }
+
+    private func nextWeekday(after date: Date, calendar: Calendar) -> Date? {
+        var candidate = date
+
+        for _ in 0..<7 {
+            guard let next = calendar.date(byAdding: .day, value: 1, to: candidate) else {
+                return nil
+            }
+
+            candidate = next
+            if !calendar.isDateInWeekend(candidate) {
+                return candidate
+            }
+        }
+
+        return nil
+    }
+}
+
 @Model
 final class TaskItem {
     @Attribute(.unique) var id: UUID
@@ -15,6 +94,7 @@ final class TaskItem {
     var reminderDate: Date?
     var notificationIdentifier: String?
     var priorityRawValue: Int
+    var recurrenceRuleRawValue: String?
     var createdAt: Date
     var updatedAt: Date
 
@@ -34,6 +114,7 @@ final class TaskItem {
         reminderDate: Date? = nil,
         notificationIdentifier: String? = nil,
         priority: TaskPriority = .none,
+        recurrenceRule: TaskRecurrenceRule = .none,
         createdAt: Date = .now,
         updatedAt: Date = .now
     ) {
@@ -50,6 +131,7 @@ final class TaskItem {
         self.reminderDate = reminderDate
         self.notificationIdentifier = notificationIdentifier
         self.priorityRawValue = priority.rawValue
+        self.recurrenceRuleRawValue = recurrenceRule == .none ? nil : recurrenceRule.rawValue
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -60,6 +142,21 @@ final class TaskItem {
             priorityRawValue = newValue.rawValue
             touch()
         }
+    }
+
+    var recurrenceRule: TaskRecurrenceRule {
+        get {
+            guard let recurrenceRuleRawValue else { return .none }
+            return TaskRecurrenceRule(rawValue: recurrenceRuleRawValue) ?? .none
+        }
+        set {
+            recurrenceRuleRawValue = newValue == .none ? nil : newValue.rawValue
+            touch()
+        }
+    }
+
+    var isRepeating: Bool {
+        recurrenceRule != .none
     }
 
     var calendarStart: Date? {
@@ -115,6 +212,29 @@ final class TaskItem {
         endDate = schedule.endDate
         isAllDay = schedule.isAllDay
         touch()
+    }
+
+    func nextRecurringInstance(calendar: Calendar = .current) -> TaskItem? {
+        let rule = recurrenceRule
+        guard rule != .none, let currentStart = calendarStart, let nextStart = rule.nextDate(after: currentStart, calendar: calendar) else {
+            return nil
+        }
+
+        let timeDelta = nextStart.timeIntervalSince(currentStart)
+        let nextTask = TaskItem(
+            title: title,
+            notes: notes,
+            list: list,
+            dueDate: dueDate.map { $0.addingTimeInterval(timeDelta) },
+            startDate: startDate.map { $0.addingTimeInterval(timeDelta) },
+            endDate: endDate.map { $0.addingTimeInterval(timeDelta) },
+            isAllDay: isAllDay,
+            reminderDate: reminderDate.map { $0.addingTimeInterval(timeDelta) },
+            priority: priority,
+            recurrenceRule: rule
+        )
+        nextTask.notificationIdentifier = nextTask.reminderDate == nil ? nil : nextTask.notificationID
+        return nextTask
     }
 
     func touch() {

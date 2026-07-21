@@ -119,6 +119,7 @@ struct RootView: View {
         .task {
             PersistenceController.seedDefaultListIfNeeded(in: modelContext)
             PersistenceController.seedExampleTasksIfNeeded(in: modelContext)
+            PersistenceController.seedRecurringExamplesIfNeeded(in: modelContext)
         }
         .sheet(item: $createTaskRequest) { request in
             TaskEditorSheet(
@@ -476,7 +477,11 @@ struct RootView: View {
     }
 
     private func toggleTask(_ task: TaskItem) {
+        let wasCompleted = task.isCompleted
         task.toggleCompletion()
+        if !wasCompleted, task.isCompleted {
+            createNextRecurringInstanceIfNeeded(from: task)
+        }
         try? modelContext.save()
 
         let payload = ReminderPayload(
@@ -517,16 +522,21 @@ struct RootView: View {
     private func saveCalendarTaskInlineEdit(_ task: TaskItem, payload: CalendarTaskInlineEditorPayload) {
         guard let list = list(with: payload.listID) ?? task.list ?? activeLists.first else { return }
 
+        let wasCompleted = task.isCompleted
         task.title = payload.title
         task.notes = payload.notes
         task.list = list
         task.isCompleted = payload.isCompleted
         task.completedAt = payload.isCompleted ? (task.completedAt ?? .now) : nil
+        task.recurrenceRule = payload.recurrenceRule
         task.apply(schedule: payload.schedule)
         task.reminderDate = payload.reminderDate
         task.notificationIdentifier = payload.reminderDate == nil ? nil : task.notificationID
         task.touch()
         selectedDate = task.calendarStart ?? selectedDate
+        if !wasCompleted, task.isCompleted {
+            createNextRecurringInstanceIfNeeded(from: task)
+        }
         try? modelContext.save()
 
         let reminderPayload = ReminderPayload(
@@ -707,6 +717,35 @@ struct RootView: View {
         guard let id else { return nil }
         return activeLists.first { $0.id == id }
     }
+
+    private func createNextRecurringInstanceIfNeeded(from task: TaskItem) {
+        guard let nextTask = task.nextRecurringInstance(), !hasExistingRecurringInstance(matching: nextTask, original: task) else {
+            return
+        }
+
+        modelContext.insert(nextTask)
+
+        let payload = ReminderPayload(
+            taskID: nextTask.id,
+            title: nextTask.title,
+            notes: nextTask.notes,
+            reminderDate: nextTask.reminderDate,
+            isCompleted: nextTask.isCompleted
+        )
+        Task {
+            await NotificationScheduler.shared.sync(payload)
+        }
+    }
+
+    private func hasExistingRecurringInstance(matching candidate: TaskItem, original: TaskItem) -> Bool {
+        tasks.contains { task in
+            guard task.id != original.id else { return false }
+            return task.title == candidate.title
+                && task.list?.id == candidate.list?.id
+                && task.recurrenceRule == candidate.recurrenceRule
+                && task.calendarStart == candidate.calendarStart
+        }
+    }
 }
 
 private struct CalendarTaskDrawerView: View {
@@ -854,6 +893,13 @@ private struct CalendarTaskDrawerRow: View {
                             .lineLimit(1)
                     } else {
                         Text("Drag to schedule")
+                            .lineLimit(1)
+                    }
+
+                    if task.isRepeating {
+                        Image(systemName: "repeat")
+                            .font(.system(size: 10, weight: .semibold))
+                        Text(task.recurrenceRule.shortTitle)
                             .lineLimit(1)
                     }
                 }
