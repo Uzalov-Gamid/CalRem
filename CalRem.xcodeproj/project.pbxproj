@@ -19,6 +19,7 @@
 		CA0000000000000000000208 /* NotificationScheduling.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000108 /* NotificationScheduling.swift */; };
 		CA0000000000000000000209 /* ListColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000109 /* ListColor.swift */; };
 		CA0000000000000000000210 /* DateFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000110 /* DateFormatters.swift */; };
+		CA0000000000000000000223 /* CalRemControlStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000123 /* CalRemControlStyle.swift */; };
 		CA0000000000000000000211 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000111 /* RootView.swift */; };
 		CA0000000000000000000212 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000112 /* SidebarView.swift */; };
 		CA0000000000000000000221 /* ListEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000121 /* ListEditorSheet.swift */; };
@@ -60,6 +61,7 @@
 		CA0000000000000000000108 /* NotificationScheduling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/Notifications/NotificationScheduling.swift; sourceTree = "<group>"; };
 		CA0000000000000000000109 /* ListColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem/ListColor.swift; sourceTree = "<group>"; };
 		CA0000000000000000000110 /* DateFormatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem/DateFormatters.swift; sourceTree = "<group>"; };
+		CA0000000000000000000123 /* CalRemControlStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem/CalRemControlStyle.swift; sourceTree = "<group>"; };
 		CA0000000000000000000111 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Root/RootView.swift; sourceTree = "<group>"; };
 		CA0000000000000000000112 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Sidebar/SidebarView.swift; sourceTree = "<group>"; };
 		CA0000000000000000000121 /* ListEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Features/Sidebar/ListEditorSheet.swift; sourceTree = "<group>"; };
@@ -127,6 +129,7 @@
 				CA0000000000000000000108 /* NotificationScheduling.swift */,
 				CA0000000000000000000109 /* ListColor.swift */,
 				CA0000000000000000000110 /* DateFormatters.swift */,
+				CA0000000000000000000123 /* CalRemControlStyle.swift */,
 				CA0000000000000000000111 /* RootView.swift */,
 				CA0000000000000000000112 /* SidebarView.swift */,
 				CA0000000000000000000121 /* ListEditorSheet.swift */,
@@ -262,6 +265,7 @@
 				CA0000000000000000000208 /* NotificationScheduling.swift in Sources */,
 				CA0000000000000000000209 /* ListColor.swift in Sources */,
 				CA0000000000000000000210 /* DateFormatters.swift in Sources */,
+				CA0000000000000000000223 /* CalRemControlStyle.swift in Sources */,
 				CA0000000000000000000211 /* RootView.swift in Sources */,
 				CA0000000000000000000212 /* SidebarView.swift in Sources */,
 				CA0000000000000000000221 /* ListEditorSheet.swift in Sources */,
