@@ -20,6 +20,18 @@ final class CalendarDateServiceTests: XCTestCase {
         XCTAssertEqual(service.week(containing: date).count, 7)
     }
 
+    func testMultiDayReturnsFiveRollingDays() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let service = CalendarDateService(calendar: calendar)
+        let date = date(year: 2026, month: 7, day: 22, calendar: calendar)
+        let days = service.multiDay(containing: date)
+
+        XCTAssertEqual(days.count, 5)
+        XCTAssertEqual(days.first, calendar.date(from: DateComponents(year: 2026, month: 7, day: 22)))
+        XCTAssertEqual(days.last, calendar.date(from: DateComponents(year: 2026, month: 7, day: 26)))
+    }
+
     func testMergeKeepsDateAndUsesTime() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!

@@ -8,12 +8,13 @@ struct InteractiveCalendarTaskBlock: View {
     let dayWidth: CGFloat?
     let onEditTask: (CalendarTaskOccurrence) -> Void
     let onUpdateSchedule: (CalendarTaskOccurrence, Date, Date) -> Void
+    let menuActions: CalendarTaskMenuActions?
 
     @GestureState private var moveTranslation: CGSize = .zero
     @GestureState private var resizeDeltaY: CGFloat = 0
 
     var body: some View {
-        CalendarTaskBlock(occurrence: occurrence, isInteracting: isInteracting)
+        CalendarTaskBlock(occurrence: occurrence, isInteracting: isInteracting, menuActions: menuActions)
             .frame(width: width, height: displayedHeight)
             .offset(x: moveTranslation.width, y: moveTranslation.height)
             .overlay(alignment: .bottom) {

@@ -1,11 +1,22 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+struct CalendarTaskMenuActions {
+    let edit: () -> Void
+    let toggleCompletion: () -> Void
+    let duplicate: () -> Void
+    let moveToToday: () -> Void
+    let moveToTomorrow: () -> Void
+    let setPriority: (TaskPriority) -> Void
+    let delete: () -> Void
+}
+
 struct CalendarTaskChip: View {
     let occurrence: CalendarTaskOccurrence
     var compact = false
+    var menuActions: CalendarTaskMenuActions?
 
-    init(task: TaskItem, compact: Bool = false) {
+    init(task: TaskItem, compact: Bool = false, menuActions: CalendarTaskMenuActions? = nil) {
         self.occurrence = CalendarTaskOccurrence(task: task) ?? CalendarTaskOccurrence(
             task: task,
             startDate: task.calendarStart,
@@ -14,11 +25,13 @@ struct CalendarTaskChip: View {
             isGenerated: false
         )
         self.compact = compact
+        self.menuActions = menuActions
     }
 
-    init(occurrence: CalendarTaskOccurrence, compact: Bool = false) {
+    init(occurrence: CalendarTaskOccurrence, compact: Bool = false, menuActions: CalendarTaskMenuActions? = nil) {
         self.occurrence = occurrence
         self.compact = compact
+        self.menuActions = menuActions
     }
 
     var body: some View {
@@ -53,7 +66,17 @@ struct CalendarTaskChip: View {
         .foregroundStyle(occurrence.isCompleted ? .secondary : .primary)
         .opacity(occurrence.isCompleted ? 0.65 : 1)
         .contentShape(RoundedRectangle(cornerRadius: CalRemControlStyle.calendarCellRadius, style: .continuous))
+        .contextMenu {
+            taskMenuContent
+        }
         .help(helpText)
+    }
+
+    @ViewBuilder
+    private var taskMenuContent: some View {
+        if let menuActions {
+            calendarTaskMenuContent(occurrence: occurrence, actions: menuActions)
+        }
     }
 
     private var color: Color {
@@ -72,8 +95,9 @@ struct CalendarTaskChip: View {
 struct CalendarTaskBlock: View {
     let occurrence: CalendarTaskOccurrence
     var isInteracting = false
+    var menuActions: CalendarTaskMenuActions?
 
-    init(task: TaskItem, isInteracting: Bool = false) {
+    init(task: TaskItem, isInteracting: Bool = false, menuActions: CalendarTaskMenuActions? = nil) {
         self.occurrence = CalendarTaskOccurrence(task: task) ?? CalendarTaskOccurrence(
             task: task,
             startDate: task.calendarStart,
@@ -82,11 +106,13 @@ struct CalendarTaskBlock: View {
             isGenerated: false
         )
         self.isInteracting = isInteracting
+        self.menuActions = menuActions
     }
 
-    init(occurrence: CalendarTaskOccurrence, isInteracting: Bool = false) {
+    init(occurrence: CalendarTaskOccurrence, isInteracting: Bool = false, menuActions: CalendarTaskMenuActions? = nil) {
         self.occurrence = occurrence
         self.isInteracting = isInteracting
+        self.menuActions = menuActions
     }
 
     var body: some View {
@@ -131,11 +157,69 @@ struct CalendarTaskBlock: View {
         .foregroundStyle(occurrence.isCompleted ? .secondary : .primary)
         .opacity(occurrence.isCompleted ? 0.65 : 1)
         .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .contextMenu {
+            taskMenuContent
+        }
         .help(DateFormatters.taskSchedule(occurrence))
+    }
+
+    @ViewBuilder
+    private var taskMenuContent: some View {
+        if let menuActions {
+            calendarTaskMenuContent(occurrence: occurrence, actions: menuActions)
+        }
     }
 
     private var color: Color {
         ListColor.named(occurrence.list?.colorName).color
+    }
+}
+
+@ViewBuilder
+private func calendarTaskMenuContent(occurrence: CalendarTaskOccurrence, actions: CalendarTaskMenuActions) -> some View {
+    Button {
+        actions.edit()
+    } label: {
+        Label("Edit", systemImage: "pencil")
+    }
+
+    Button {
+        actions.toggleCompletion()
+    } label: {
+        Label(occurrence.isCompleted ? "Mark Incomplete" : "Complete", systemImage: occurrence.isCompleted ? "circle" : "checkmark.circle")
+    }
+
+    Menu {
+        Button("Today", action: actions.moveToToday)
+        Button("Tomorrow", action: actions.moveToTomorrow)
+    } label: {
+        Label("Move to", systemImage: "arrow.right.square")
+    }
+
+    Menu {
+        ForEach(TaskPriority.allCases) { priority in
+            Button {
+                actions.setPriority(priority)
+            } label: {
+                Label(priority.title, systemImage: occurrence.task.priority == priority ? "checkmark" : "flag")
+            }
+        }
+    } label: {
+        Label("Priority", systemImage: "flag")
+    }
+
+    Divider()
+
+    Button {
+        actions.duplicate()
+    } label: {
+        Label("Duplicate", systemImage: "square.on.square")
+    }
+
+    Button(role: .destructive) {
+        actions.delete()
+    } label: {
+        Label("Delete", systemImage: "trash")
     }
 }
 

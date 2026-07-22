@@ -8,6 +8,7 @@ struct PlannerCalendarView: View {
     let onUpdateTaskSchedule: (CalendarTaskOccurrence, Date, Date) -> Void
     let onCreateTaskSchedule: (CalendarTaskDraftSchedule) -> Void
     let onScheduleExistingTask: (UUID, Date, Date) -> Void
+    let makeTaskMenuActions: (CalendarTaskOccurrence) -> CalendarTaskMenuActions
 
     var body: some View {
         Group {
@@ -17,7 +18,8 @@ struct PlannerCalendarView: View {
                     tasks: tasks,
                     selectedDate: $selectedDate,
                     onEditTask: onEditTask,
-                    onCreateTaskSchedule: onCreateTaskSchedule
+                    onCreateTaskSchedule: onCreateTaskSchedule,
+                    makeTaskMenuActions: makeTaskMenuActions
                 )
             case .week:
                 WeekCalendarView(
@@ -26,7 +28,19 @@ struct PlannerCalendarView: View {
                     onEditTask: onEditTask,
                     onUpdateTaskSchedule: onUpdateTaskSchedule,
                     onCreateTaskSchedule: onCreateTaskSchedule,
-                    onScheduleExistingTask: onScheduleExistingTask
+                    onScheduleExistingTask: onScheduleExistingTask,
+                    makeTaskMenuActions: makeTaskMenuActions
+                )
+            case .multiDay:
+                WeekCalendarView(
+                    tasks: tasks,
+                    visibleDays: CalendarDateService().multiDay(containing: selectedDate),
+                    selectedDate: $selectedDate,
+                    onEditTask: onEditTask,
+                    onUpdateTaskSchedule: onUpdateTaskSchedule,
+                    onCreateTaskSchedule: onCreateTaskSchedule,
+                    onScheduleExistingTask: onScheduleExistingTask,
+                    makeTaskMenuActions: makeTaskMenuActions
                 )
             case .day:
                 DayCalendarView(
@@ -35,7 +49,8 @@ struct PlannerCalendarView: View {
                     onEditTask: onEditTask,
                     onUpdateTaskSchedule: onUpdateTaskSchedule,
                     onCreateTaskSchedule: onCreateTaskSchedule,
-                    onScheduleExistingTask: onScheduleExistingTask
+                    onScheduleExistingTask: onScheduleExistingTask,
+                    makeTaskMenuActions: makeTaskMenuActions
                 )
             }
         }

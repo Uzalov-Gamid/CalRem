@@ -22,12 +22,12 @@ struct CalRemIconButtonStyle: ButtonStyle {
             .background(
                 configuration.isPressed
                     ? Color.accentColor.opacity(0.18)
-                    : Color(nsColor: .controlBackgroundColor),
+                    : Color(nsColor: .controlBackgroundColor).opacity(0.62),
                 in: RoundedRectangle(cornerRadius: CalRemControlStyle.toolbarRadius, style: .continuous)
             )
             .overlay {
                 RoundedRectangle(cornerRadius: CalRemControlStyle.toolbarRadius, style: .continuous)
-                    .stroke(Color(nsColor: .separatorColor).opacity(0.35), lineWidth: 1)
+                    .stroke(Color(nsColor: .separatorColor).opacity(0.24), lineWidth: 1)
             }
             .contentShape(RoundedRectangle(cornerRadius: CalRemControlStyle.toolbarRadius, style: .continuous))
     }
@@ -57,11 +57,11 @@ struct CalRemPillButtonStyle: ButtonStyle {
 
         return isPressed
             ? Color.accentColor.opacity(0.16)
-            : Color(nsColor: .controlBackgroundColor)
+            : Color(nsColor: .controlBackgroundColor).opacity(0.66)
     }
 
     private var borderColor: Color {
-        isProminent ? .clear : Color(nsColor: .separatorColor).opacity(0.35)
+        isProminent ? .clear : Color(nsColor: .separatorColor).opacity(0.24)
     }
 }
 

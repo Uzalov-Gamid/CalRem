@@ -5,6 +5,7 @@ struct MonthCalendarView: View {
     @Binding var selectedDate: Date
     let onEditTask: (CalendarTaskOccurrence) -> Void
     let onCreateTaskSchedule: (CalendarTaskDraftSchedule) -> Void
+    let makeTaskMenuActions: (CalendarTaskOccurrence) -> CalendarTaskMenuActions
 
     private let calendarService = CalendarDateService()
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 1), count: 7)
@@ -64,7 +65,7 @@ struct MonthCalendarView: View {
             }
 
             ForEach(visible) { occurrence in
-                CalendarTaskChip(occurrence: occurrence, compact: true)
+                CalendarTaskChip(occurrence: occurrence, compact: true, menuActions: makeTaskMenuActions(occurrence))
                     .onTapGesture {
                         onEditTask(occurrence)
                     }
