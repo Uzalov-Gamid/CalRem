@@ -73,6 +73,50 @@ struct TaskCreationRequest: Identifiable {
     let defaultAllDay: Bool
 }
 
+private struct TaskSnapshot {
+    let id: UUID
+    let title: String
+    let notes: String
+    let listID: UUID?
+    let isCompleted: Bool
+    let completedAt: Date?
+    let dueDate: Date?
+    let startDate: Date?
+    let endDate: Date?
+    let isAllDay: Bool
+    let reminderDate: Date?
+    let notificationIdentifier: String?
+    let priority: TaskPriority
+    let recurrenceRule: TaskRecurrenceRule
+    let createdAt: Date
+    let updatedAt: Date
+
+    init(task: TaskItem) {
+        id = task.id
+        title = task.title
+        notes = task.notes
+        listID = task.list?.id
+        isCompleted = task.isCompleted
+        completedAt = task.completedAt
+        dueDate = task.dueDate
+        startDate = task.startDate
+        endDate = task.endDate
+        isAllDay = task.isAllDay
+        reminderDate = task.reminderDate
+        notificationIdentifier = task.notificationIdentifier
+        priority = task.priority
+        recurrenceRule = task.recurrenceRule
+        createdAt = task.createdAt
+        updatedAt = task.updatedAt
+    }
+}
+
+private enum TaskUndoAction {
+    case restore(TaskSnapshot)
+    case update(TaskSnapshot)
+    case delete(UUID)
+}
+
 struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: [SortDescriptor(\TaskList.sortOrder), SortDescriptor(\TaskList.createdAt)])
@@ -93,6 +137,7 @@ struct RootView: View {
     @State private var isCreatingList = false
     @State private var newListName = ""
     @State private var newListColor = ListColor.blue
+    @State private var undoStack: [TaskUndoAction] = []
 
     private let calendarService = CalendarDateService()
 
@@ -170,7 +215,7 @@ struct RootView: View {
             onAddTask: { showCreateTask() },
             onEditTask: { editingTask = $0 },
             onToggleTask: toggleTask,
-            onDeleteTask: deleteTask
+            onDeleteTask: { deleteTask($0) }
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .textBackgroundColor))
@@ -190,7 +235,8 @@ struct RootView: View {
                         onEditTask: { calendarEditingOccurrence = $0 },
                         onUpdateTaskSchedule: updateTaskSchedule,
                         onCreateTaskSchedule: createCalendarTask,
-                        onScheduleExistingTask: scheduleExistingTask
+                        onScheduleExistingTask: scheduleExistingTask,
+                        makeTaskMenuActions: calendarTaskMenuActions
                     )
                     .layoutPriority(1)
 
@@ -201,7 +247,7 @@ struct RootView: View {
                             unscheduledTasks: unscheduledDrawerTasks,
                             onEditTask: { editingTask = $0 },
                             onToggleTask: toggleTask,
-                            onDeleteTask: deleteTask
+                            onDeleteTask: { deleteTask($0) }
                         )
                         .frame(width: 306)
                         .transition(.move(edge: .trailing).combined(with: .opacity))
@@ -224,6 +270,15 @@ struct RootView: View {
             }
         }
         .animation(.snappy(duration: 0.16), value: calendarEditingOccurrence?.id)
+        .background {
+            CalendarSwipeNavigationBridge(isEnabled: workspace == .calendar) { direction in
+                navigateCalendar(direction: direction)
+            }
+            .frame(width: 0, height: 0)
+        }
+        .overlay(alignment: .topLeading) {
+            keyboardCommandHost
+        }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
     }
@@ -238,7 +293,7 @@ struct RootView: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(calendarHeaderTitle)
-                        .font(.title.weight(.semibold))
+                        .font(.title2.weight(.semibold))
                     Text(calendarHeaderSubtitle)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -267,17 +322,33 @@ struct RootView: View {
             .buttonStyle(CalRemIconButtonStyle(size: 30))
             .help("Create task on selected date")
 
-            Picker("Calendar View", selection: $calendarMode) {
+            Menu {
                 ForEach(CalendarMode.allCases) { mode in
-                    Text(mode.title).tag(mode)
+                    Button {
+                        calendarMode = mode
+                    } label: {
+                        HStack {
+                            Label(mode.title, systemImage: calendarMode == mode ? "checkmark" : mode.systemImage)
+                            Spacer()
+                            Text(mode.shortcutHint)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
+            } label: {
+                HStack(spacing: 6) {
+                    Text(calendarMode.title)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(minWidth: 92)
             }
-            .labelsHidden()
-            .pickerStyle(.segmented)
-            .frame(width: 172)
+            .buttonStyle(CalRemPillButtonStyle())
+            .help("Calendar view")
 
             Button {
-                selectedDate = calendarService.previousDate(from: selectedDate, mode: calendarMode)
+                navigateCalendar(direction: -1)
             } label: {
                 Label("Previous", systemImage: "chevron.left")
             }
@@ -292,7 +363,7 @@ struct RootView: View {
             .help("Jump to today")
 
             Button {
-                selectedDate = calendarService.nextDate(from: selectedDate, mode: calendarMode)
+                navigateCalendar(direction: 1)
             } label: {
                 Label("Next", systemImage: "chevron.right")
             }
@@ -300,10 +371,59 @@ struct RootView: View {
             .buttonStyle(CalRemIconButtonStyle())
             .help("Next \(calendarMode.title.lowercased())")
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
-        .padding(.bottom, 10)
+        .padding(.horizontal, 18)
+        .padding(.top, 10)
+        .padding(.bottom, 9)
         .background(Color(nsColor: .textBackgroundColor))
+    }
+
+    private var keyboardCommandHost: some View {
+        VStack {
+            Button("Undo") {
+                performUndo()
+            }
+            .keyboardShortcut("z", modifiers: [.command])
+
+            Button("Delete Calendar Task") {
+                if let occurrence = calendarEditingOccurrence {
+                    deleteCalendarTaskFromInlineEdit(occurrence)
+                }
+            }
+            .keyboardShortcut(.delete, modifiers: [.command])
+
+            Button("Previous Calendar Period") {
+                navigateCalendar(direction: -1)
+            }
+            .keyboardShortcut(.leftArrow, modifiers: [.command])
+
+            Button("Next Calendar Period") {
+                navigateCalendar(direction: 1)
+            }
+            .keyboardShortcut(.rightArrow, modifiers: [.command])
+
+            Button("Day View") {
+                calendarMode = .day
+            }
+            .keyboardShortcut("1", modifiers: [.command])
+
+            Button("Week View") {
+                calendarMode = .week
+            }
+            .keyboardShortcut("2", modifiers: [.command])
+
+            Button("Month View") {
+                calendarMode = .month
+            }
+            .keyboardShortcut("3", modifiers: [.command])
+
+            Button("Multi-Day View") {
+                calendarMode = .multiDay
+            }
+            .keyboardShortcut("5", modifiers: [.command])
+        }
+        .frame(width: 0, height: 0)
+        .opacity(0)
+        .accessibilityHidden(true)
     }
 
     private var calendarHeaderTitle: String {
@@ -314,7 +434,7 @@ struct RootView: View {
         switch calendarMode {
         case .month:
             "Month View"
-        case .week, .day:
+        case .week, .multiDay, .day:
             calendarService.title(for: selectedDate, mode: calendarMode)
         }
     }
@@ -375,13 +495,49 @@ struct RootView: View {
         }
     }
 
+    private func navigateCalendar(direction: Int) {
+        guard direction != 0 else { return }
+        withAnimation(.snappy(duration: 0.18)) {
+            selectedDate = direction > 0
+                ? calendarService.nextDate(from: selectedDate, mode: calendarMode)
+                : calendarService.previousDate(from: selectedDate, mode: calendarMode)
+        }
+    }
+
+    private func calendarTaskMenuActions(for occurrence: CalendarTaskOccurrence) -> CalendarTaskMenuActions {
+        CalendarTaskMenuActions(
+            edit: {
+                calendarEditingOccurrence = occurrence
+            },
+            toggleCompletion: {
+                toggleCalendarTask(occurrence)
+            },
+            duplicate: {
+                duplicateCalendarTask(occurrence)
+            },
+            moveToToday: {
+                moveCalendarTask(occurrence, to: .now)
+            },
+            moveToTomorrow: {
+                let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: .now) ?? .now
+                moveCalendarTask(occurrence, to: tomorrow)
+            },
+            setPriority: { priority in
+                setTaskPriority(occurrence.task, priority: priority)
+            },
+            delete: {
+                deleteTask(occurrence.task)
+            }
+        )
+    }
+
     private var visibleTasks: [TaskItem] {
         filteredTasks.sorted(by: taskSort)
     }
 
     private var calendarTasks: [TaskItem] {
         tasks
-            .filter { !$0.isCompleted && $0.isScheduled }
+            .filter(\.isScheduled)
             .sorted(by: taskSort)
     }
 
@@ -477,6 +633,7 @@ struct RootView: View {
     }
 
     private func toggleTask(_ task: TaskItem) {
+        undoStack.append(.update(TaskSnapshot(task: task)))
         let wasCompleted = task.isCompleted
         task.toggleCompletion()
         if !wasCompleted, task.isCompleted {
@@ -496,7 +653,15 @@ struct RootView: View {
         }
     }
 
-    private func deleteTask(_ task: TaskItem) {
+    private func toggleCalendarTask(_ occurrence: CalendarTaskOccurrence) {
+        toggleTask(occurrence.task)
+    }
+
+    private func deleteTask(_ task: TaskItem, recordUndo: Bool = true) {
+        if recordUndo {
+            undoStack.append(.restore(TaskSnapshot(task: task)))
+        }
+
         let taskID = task.id
         modelContext.delete(task)
         try? modelContext.save()
@@ -504,6 +669,70 @@ struct RootView: View {
         Task {
             await NotificationScheduler.shared.cancel(taskID: taskID)
         }
+    }
+
+    private func duplicateCalendarTask(_ occurrence: CalendarTaskOccurrence) {
+        let task = occurrence.task
+        let duplicate = TaskItem(
+            title: task.title,
+            notes: task.notes,
+            list: task.list,
+            dueDate: occurrence.calendarStart,
+            startDate: occurrence.isAllDay ? nil : occurrence.calendarStart,
+            endDate: occurrence.isAllDay ? nil : occurrence.calendarEnd,
+            isAllDay: occurrence.isAllDay,
+            reminderDate: occurrence.reminderDate,
+            priority: task.priority,
+            recurrenceRule: occurrence.recurrenceRule
+        )
+        duplicate.notificationIdentifier = duplicate.reminderDate == nil ? nil : duplicate.notificationID
+        modelContext.insert(duplicate)
+        undoStack.append(.delete(duplicate.id))
+        selectedDate = occurrence.calendarStart ?? selectedDate
+        try? modelContext.save()
+        syncNotification(for: duplicate)
+    }
+
+    private func moveCalendarTask(_ occurrence: CalendarTaskOccurrence, to targetDay: Date) {
+        let task = occurrence.task
+        guard let occurrenceStart = occurrence.calendarStart else { return }
+
+        undoStack.append(.update(TaskSnapshot(task: task)))
+
+        let calendar = Calendar.current
+        let targetStartOfDay = calendar.startOfDay(for: targetDay)
+        let schedule: TaskSchedule
+
+        if occurrence.isAllDay {
+            schedule = TaskSchedule(
+                dueDate: targetStartOfDay,
+                startDate: nil,
+                endDate: nil,
+                isAllDay: true
+            )
+        } else {
+            let targetStart = calendarService.merge(date: targetStartOfDay, time: occurrenceStart)
+            let duration = occurrence.calendarEnd?.timeIntervalSince(occurrenceStart) ?? TaskScheduleValidator.defaultDuration
+            let targetEnd = targetStart.addingTimeInterval(max(duration, TaskScheduleValidator.minimumDuration))
+            schedule = TaskSchedule(
+                dueDate: targetStart,
+                startDate: targetStart,
+                endDate: targetEnd,
+                isAllDay: false
+            )
+        }
+
+        task.apply(schedule: adjustedSchedule(for: occurrence, proposedSchedule: schedule, editsSeries: true))
+        selectedDate = schedule.dueDate ?? schedule.startDate ?? targetDay
+        try? modelContext.save()
+        syncNotification(for: task)
+    }
+
+    private func setTaskPriority(_ task: TaskItem, priority: TaskPriority) {
+        guard task.priority != priority else { return }
+        undoStack.append(.update(TaskSnapshot(task: task)))
+        task.priority = priority
+        try? modelContext.save()
     }
 
     private func createCalendarTask(_ schedule: CalendarTaskDraftSchedule) {
@@ -523,6 +752,7 @@ struct RootView: View {
         let task = occurrence.task
         guard let list = list(with: payload.listID) ?? task.list ?? activeLists.first else { return }
 
+        undoStack.append(.update(TaskSnapshot(task: task)))
         let wasCompleted = task.isCompleted
         task.title = payload.title
         task.notes = payload.notes
@@ -584,7 +814,7 @@ struct RootView: View {
         calendarDraftTaskID = nil
 
         if isEmptyCalendarDraft(task) {
-            deleteTask(task)
+            deleteTask(task, recordUndo: false)
         }
     }
 
@@ -597,6 +827,7 @@ struct RootView: View {
 
     private func updateTaskSchedule(_ occurrence: CalendarTaskOccurrence, start: Date, end: Date) {
         let task = occurrence.task
+        undoStack.append(.update(TaskSnapshot(task: task)))
         let minimumEnd = Calendar.current.date(
             byAdding: .second,
             value: Int(TaskScheduleValidator.minimumDuration),
@@ -791,6 +1022,87 @@ struct RootView: View {
     private func list(with id: UUID?) -> TaskList? {
         guard let id else { return nil }
         return activeLists.first { $0.id == id }
+    }
+
+    private func performUndo() {
+        guard let action = undoStack.popLast() else { return }
+
+        switch action {
+        case let .restore(snapshot):
+            restoreTask(from: snapshot)
+        case let .update(snapshot):
+            if let task = tasks.first(where: { $0.id == snapshot.id }) {
+                apply(snapshot, to: task)
+                try? modelContext.save()
+                syncNotification(for: task)
+            } else {
+                restoreTask(from: snapshot)
+            }
+        case let .delete(id):
+            guard let task = tasks.first(where: { $0.id == id }) else { return }
+            deleteTask(task, recordUndo: false)
+        }
+    }
+
+    private func restoreTask(from snapshot: TaskSnapshot) {
+        if let existing = tasks.first(where: { $0.id == snapshot.id }) {
+            apply(snapshot, to: existing)
+            try? modelContext.save()
+            syncNotification(for: existing)
+            return
+        }
+
+        let task = TaskItem(
+            id: snapshot.id,
+            title: snapshot.title,
+            notes: snapshot.notes,
+            list: list(with: snapshot.listID) ?? activeLists.first,
+            isCompleted: snapshot.isCompleted,
+            completedAt: snapshot.completedAt,
+            dueDate: snapshot.dueDate,
+            startDate: snapshot.startDate,
+            endDate: snapshot.endDate,
+            isAllDay: snapshot.isAllDay,
+            reminderDate: snapshot.reminderDate,
+            notificationIdentifier: snapshot.notificationIdentifier,
+            priority: snapshot.priority,
+            recurrenceRule: snapshot.recurrenceRule,
+            createdAt: snapshot.createdAt,
+            updatedAt: snapshot.updatedAt
+        )
+        modelContext.insert(task)
+        try? modelContext.save()
+        syncNotification(for: task)
+    }
+
+    private func apply(_ snapshot: TaskSnapshot, to task: TaskItem) {
+        task.title = snapshot.title
+        task.notes = snapshot.notes
+        task.list = list(with: snapshot.listID) ?? activeLists.first
+        task.isCompleted = snapshot.isCompleted
+        task.completedAt = snapshot.completedAt
+        task.dueDate = snapshot.dueDate
+        task.startDate = snapshot.startDate
+        task.endDate = snapshot.endDate
+        task.isAllDay = snapshot.isAllDay
+        task.reminderDate = snapshot.reminderDate
+        task.notificationIdentifier = snapshot.notificationIdentifier
+        task.priority = snapshot.priority
+        task.recurrenceRule = snapshot.recurrenceRule
+        task.updatedAt = snapshot.updatedAt
+    }
+
+    private func syncNotification(for task: TaskItem) {
+        let payload = ReminderPayload(
+            taskID: task.id,
+            title: task.title,
+            notes: task.notes,
+            reminderDate: task.reminderDate,
+            isCompleted: task.isCompleted
+        )
+        Task {
+            await NotificationScheduler.shared.sync(payload)
+        }
     }
 
     private func createNextRecurringInstanceIfNeeded(from task: TaskItem) {

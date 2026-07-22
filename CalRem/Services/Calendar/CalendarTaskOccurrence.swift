@@ -137,6 +137,14 @@ enum CalendarRecurrenceService {
     ) -> [CalendarTaskOccurrence] {
         guard let taskStart = task.calendarStart else { return [] }
 
+        if task.isCompleted {
+            guard taskStart >= rangeStart && taskStart < rangeEnd,
+                  let occurrence = CalendarTaskOccurrence(task: task) else {
+                return []
+            }
+            return [occurrence]
+        }
+
         if !task.isRepeating {
             guard taskStart >= rangeStart && taskStart < rangeEnd,
                   let occurrence = CalendarTaskOccurrence(task: task) else {

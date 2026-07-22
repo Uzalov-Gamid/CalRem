@@ -2,11 +2,13 @@ import SwiftUI
 
 struct WeekCalendarView: View {
     let tasks: [TaskItem]
+    var visibleDays: [Date]? = nil
     @Binding var selectedDate: Date
     let onEditTask: (CalendarTaskOccurrence) -> Void
     let onUpdateTaskSchedule: (CalendarTaskOccurrence, Date, Date) -> Void
     let onCreateTaskSchedule: (CalendarTaskDraftSchedule) -> Void
     let onScheduleExistingTask: (UUID, Date, Date) -> Void
+    let makeTaskMenuActions: (CalendarTaskOccurrence) -> CalendarTaskMenuActions
 
     private let calendarService = CalendarDateService()
     private let hourHeight = CalRemControlStyle.calendarHourHeight
@@ -101,7 +103,7 @@ struct WeekCalendarView: View {
             VStack(spacing: 0) {
                 ForEach(0..<24, id: \.self) { _ in
                     Rectangle()
-                        .fill(Color(nsColor: .separatorColor).opacity(0.20))
+                        .fill(Color(nsColor: .separatorColor).opacity(0.16))
                         .frame(height: 1)
                     Color.clear.frame(height: hourHeight - 1)
                 }
@@ -137,13 +139,14 @@ struct WeekCalendarView: View {
                     InteractiveCalendarTaskBlock(
                         occurrence: occurrence,
                         width: max(columnWidth - gutter, 36),
-                        height: blockHeight(for: occurrence),
+                        height: max(blockHeight(for: occurrence) - 3, 26),
                         hourHeight: hourHeight,
                         dayWidth: proxy.size.width,
                         onEditTask: onEditTask,
-                        onUpdateSchedule: onUpdateTaskSchedule
+                        onUpdateSchedule: onUpdateTaskSchedule,
+                        menuActions: makeTaskMenuActions(occurrence)
                     )
-                    .offset(x: x, y: blockOffset(for: occurrence))
+                    .offset(x: x, y: blockOffset(for: occurrence) + 1)
                 }
             }
         }
@@ -161,7 +164,7 @@ struct WeekCalendarView: View {
         )
         .overlay(alignment: .trailing) {
             Rectangle()
-                .fill(Color(nsColor: .separatorColor).opacity(0.28))
+                .fill(Color(nsColor: .separatorColor).opacity(0.20))
                 .frame(width: 1)
         }
         .contentShape(Rectangle())
@@ -181,7 +184,7 @@ struct WeekCalendarView: View {
                 Spacer(minLength: 0)
             } else {
                 ForEach(allDayTasks.prefix(2)) { occurrence in
-                    CalendarTaskChip(occurrence: occurrence, compact: true)
+                    CalendarTaskChip(occurrence: occurrence, compact: true, menuActions: makeTaskMenuActions(occurrence))
                         .contentShape(RoundedRectangle(cornerRadius: CalRemControlStyle.calendarCellRadius, style: .continuous))
                         .onTapGesture {
                             onEditTask(occurrence)
@@ -195,7 +198,7 @@ struct WeekCalendarView: View {
         .background(dayBackground(for: day))
         .overlay(alignment: .trailing) {
             Rectangle()
-                .fill(Color(nsColor: .separatorColor).opacity(0.20))
+                .fill(Color(nsColor: .separatorColor).opacity(0.16))
                 .frame(width: 1)
         }
         .contentShape(Rectangle())
@@ -219,7 +222,7 @@ struct WeekCalendarView: View {
     }
 
     private var weekDays: [Date] {
-        calendarService.week(containing: selectedDate)
+        visibleDays ?? calendarService.week(containing: selectedDate)
     }
 
     private var activePreview: CalendarTaskDraftSchedule? {

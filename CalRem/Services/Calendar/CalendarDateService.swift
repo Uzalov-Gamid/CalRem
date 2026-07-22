@@ -43,12 +43,21 @@ struct CalendarDateService {
         }
     }
 
+    func multiDay(containing date: Date, count: Int = 5) -> [Date] {
+        let start = calendar.startOfDay(for: date)
+        return (0..<count).compactMap { offset in
+            calendar.date(byAdding: .day, value: offset, to: start)
+        }
+    }
+
     func nextDate(from date: Date, mode: CalendarMode) -> Date {
         switch mode {
         case .month:
             calendar.date(byAdding: .month, value: 1, to: date) ?? date
         case .week:
             calendar.date(byAdding: .weekOfYear, value: 1, to: date) ?? date
+        case .multiDay:
+            calendar.date(byAdding: .day, value: 5, to: date) ?? date
         case .day:
             calendar.date(byAdding: .day, value: 1, to: date) ?? date
         }
@@ -60,6 +69,8 @@ struct CalendarDateService {
             calendar.date(byAdding: .month, value: -1, to: date) ?? date
         case .week:
             calendar.date(byAdding: .weekOfYear, value: -1, to: date) ?? date
+        case .multiDay:
+            calendar.date(byAdding: .day, value: -5, to: date) ?? date
         case .day:
             calendar.date(byAdding: .day, value: -1, to: date) ?? date
         }
@@ -71,6 +82,12 @@ struct CalendarDateService {
             return date.formatted(.dateTime.month(.wide).year())
         case .week:
             let days = week(containing: date)
+            guard let first = days.first, let last = days.last else {
+                return date.formatted(.dateTime.month(.wide).year())
+            }
+            return "\(first.formatted(.dateTime.month(.abbreviated).day())) - \(last.formatted(.dateTime.month(.abbreviated).day().year()))"
+        case .multiDay:
+            let days = multiDay(containing: date)
             guard let first = days.first, let last = days.last else {
                 return date.formatted(.dateTime.month(.wide).year())
             }

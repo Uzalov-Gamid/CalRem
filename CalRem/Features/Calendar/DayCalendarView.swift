@@ -7,6 +7,7 @@ struct DayCalendarView: View {
     let onUpdateTaskSchedule: (CalendarTaskOccurrence, Date, Date) -> Void
     let onCreateTaskSchedule: (CalendarTaskDraftSchedule) -> Void
     let onScheduleExistingTask: (UUID, Date, Date) -> Void
+    let makeTaskMenuActions: (CalendarTaskOccurrence) -> CalendarTaskMenuActions
 
     private let calendarService = CalendarDateService()
     private let hourHeight = CalRemControlStyle.calendarHourHeight
@@ -54,7 +55,7 @@ struct DayCalendarView: View {
             } else {
                 VStack(spacing: 5) {
                     ForEach(allDayTasks) { occurrence in
-                        CalendarTaskChip(occurrence: occurrence)
+                        CalendarTaskChip(occurrence: occurrence, menuActions: makeTaskMenuActions(occurrence))
                             .contentShape(RoundedRectangle(cornerRadius: CalRemControlStyle.calendarCellRadius, style: .continuous))
                             .onTapGesture {
                                 onEditTask(occurrence)
@@ -100,7 +101,7 @@ struct DayCalendarView: View {
             VStack(spacing: 0) {
                 ForEach(0..<24, id: \.self) { _ in
                     Rectangle()
-                        .fill(Color(nsColor: .separatorColor).opacity(0.20))
+                        .fill(Color(nsColor: .separatorColor).opacity(0.16))
                         .frame(height: 1)
                     Color.clear.frame(height: hourHeight - 1)
                 }
@@ -134,13 +135,14 @@ struct DayCalendarView: View {
                     InteractiveCalendarTaskBlock(
                         occurrence: occurrence,
                         width: max(columnWidth - gutter, 52),
-                        height: blockHeight(for: occurrence),
+                        height: max(blockHeight(for: occurrence) - 3, 30),
                         hourHeight: hourHeight,
                         dayWidth: nil,
                         onEditTask: onEditTask,
-                        onUpdateSchedule: onUpdateTaskSchedule
+                        onUpdateSchedule: onUpdateTaskSchedule,
+                        menuActions: makeTaskMenuActions(occurrence)
                     )
-                    .offset(x: x, y: blockOffset(for: occurrence))
+                    .offset(x: x, y: blockOffset(for: occurrence) + 1)
                 }
             }
         }
@@ -158,7 +160,7 @@ struct DayCalendarView: View {
         )
         .overlay(alignment: .leading) {
             Rectangle()
-                .fill(Color(nsColor: .separatorColor).opacity(0.22))
+                .fill(Color(nsColor: .separatorColor).opacity(0.18))
                 .frame(width: 1)
         }
     }

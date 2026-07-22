@@ -1,9 +1,10 @@
 import Foundation
 
 enum CalendarMode: String, CaseIterable, Identifiable {
-    case month
-    case week
     case day
+    case week
+    case month
+    case multiDay
 
     var id: String { rawValue }
 
@@ -13,6 +14,8 @@ enum CalendarMode: String, CaseIterable, Identifiable {
             "Month"
         case .week:
             "Week"
+        case .multiDay:
+            "Multi-Day"
         case .day:
             "Day"
         }
@@ -24,8 +27,23 @@ enum CalendarMode: String, CaseIterable, Identifiable {
             "calendar"
         case .week:
             "rectangle.split.3x1"
+        case .multiDay:
+            "rectangle.split.3x1.fill"
         case .day:
             "rectangle"
+        }
+    }
+
+    var shortcutHint: String {
+        switch self {
+        case .day:
+            "Cmd-1"
+        case .week:
+            "Cmd-2"
+        case .month:
+            "Cmd-3"
+        case .multiDay:
+            "5 Days"
         }
     }
 }

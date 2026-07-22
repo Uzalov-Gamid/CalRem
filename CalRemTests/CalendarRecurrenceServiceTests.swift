@@ -59,6 +59,25 @@ final class CalendarRecurrenceServiceTests: XCTestCase {
         XCTAssertTrue(CalendarRecurrenceService.occurrences(for: [task], on: nextWednesday, calendar: calendar).isEmpty)
     }
 
+    func testCompletedRecurringTaskOnlyRendersItsCompletedBaseOccurrence() {
+        let calendar = calendar()
+        let start = calendar.date(from: DateComponents(year: 2026, month: 7, day: 21, hour: 0, minute: 30))!
+        let end = calendar.date(from: DateComponents(year: 2026, month: 7, day: 21, hour: 8, minute: 30))!
+        let task = TaskItem(
+            title: "Sleep",
+            isCompleted: true,
+            completedAt: start,
+            dueDate: start,
+            startDate: start,
+            endDate: end,
+            recurrenceRule: .daily
+        )
+        let nextDay = calendar.date(from: DateComponents(year: 2026, month: 7, day: 22))!
+
+        XCTAssertEqual(CalendarRecurrenceService.occurrences(for: [task], on: start, calendar: calendar).count, 1)
+        XCTAssertTrue(CalendarRecurrenceService.occurrences(for: [task], on: nextDay, calendar: calendar).isEmpty)
+    }
+
     private func calendar() -> Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
