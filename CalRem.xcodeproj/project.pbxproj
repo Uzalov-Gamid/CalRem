@@ -18,6 +18,7 @@
 		CA0000000000000000000222 /* CalendarTaskLayoutService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000122 /* CalendarTaskLayoutService.swift */; };
 		CA0000000000000000000224 /* CalendarInteractionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000124 /* CalendarInteractionService.swift */; };
 		CA0000000000000000000226 /* CalendarTaskDraftSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000126 /* CalendarTaskDraftSchedule.swift */; };
+		CA0000000000000000000228 /* CalendarTaskOccurrence.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000128 /* CalendarTaskOccurrence.swift */; };
 		CA0000000000000000000208 /* NotificationScheduling.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000108 /* NotificationScheduling.swift */; };
 		CA0000000000000000000209 /* ListColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000109 /* ListColor.swift */; };
 		CA0000000000000000000210 /* DateFormatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000110 /* DateFormatters.swift */; };
@@ -39,6 +40,7 @@
 		CA0000000000000000000401 /* TaskScheduleValidatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000301 /* TaskScheduleValidatorTests.swift */; };
 		CA0000000000000000000402 /* CalendarTaskLayoutServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000302 /* CalendarTaskLayoutServiceTests.swift */; };
 		CA0000000000000000000403 /* CalendarInteractionServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000303 /* CalendarInteractionServiceTests.swift */; };
+		CA0000000000000000000404 /* CalendarRecurrenceServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000304 /* CalendarRecurrenceServiceTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -65,6 +67,7 @@
 		CA0000000000000000000122 /* CalendarTaskLayoutService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/Calendar/CalendarTaskLayoutService.swift; sourceTree = "<group>"; };
 		CA0000000000000000000124 /* CalendarInteractionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/Calendar/CalendarInteractionService.swift; sourceTree = "<group>"; };
 		CA0000000000000000000126 /* CalendarTaskDraftSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/Calendar/CalendarTaskDraftSchedule.swift; sourceTree = "<group>"; };
+		CA0000000000000000000128 /* CalendarTaskOccurrence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/Calendar/CalendarTaskOccurrence.swift; sourceTree = "<group>"; };
 		CA0000000000000000000108 /* NotificationScheduling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/Notifications/NotificationScheduling.swift; sourceTree = "<group>"; };
 		CA0000000000000000000109 /* ListColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem/ListColor.swift; sourceTree = "<group>"; };
 		CA0000000000000000000110 /* DateFormatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem/DateFormatters.swift; sourceTree = "<group>"; };
@@ -86,6 +89,7 @@
 		CA0000000000000000000301 /* TaskScheduleValidatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskScheduleValidatorTests.swift; sourceTree = "<group>"; };
 		CA0000000000000000000302 /* CalendarTaskLayoutServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarTaskLayoutServiceTests.swift; sourceTree = "<group>"; };
 		CA0000000000000000000303 /* CalendarInteractionServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarInteractionServiceTests.swift; sourceTree = "<group>"; };
+		CA0000000000000000000304 /* CalendarRecurrenceServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarRecurrenceServiceTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -138,6 +142,7 @@
 				CA0000000000000000000122 /* CalendarTaskLayoutService.swift */,
 				CA0000000000000000000124 /* CalendarInteractionService.swift */,
 				CA0000000000000000000126 /* CalendarTaskDraftSchedule.swift */,
+				CA0000000000000000000128 /* CalendarTaskOccurrence.swift */,
 				CA0000000000000000000108 /* NotificationScheduling.swift */,
 				CA0000000000000000000109 /* ListColor.swift */,
 				CA0000000000000000000110 /* DateFormatters.swift */,
@@ -166,6 +171,7 @@
 				CA0000000000000000000301 /* TaskScheduleValidatorTests.swift */,
 				CA0000000000000000000302 /* CalendarTaskLayoutServiceTests.swift */,
 				CA0000000000000000000303 /* CalendarInteractionServiceTests.swift */,
+				CA0000000000000000000304 /* CalendarRecurrenceServiceTests.swift */,
 			);
 			path = CalRemTests;
 			sourceTree = "<group>";
@@ -279,6 +285,7 @@
 				CA0000000000000000000222 /* CalendarTaskLayoutService.swift in Sources */,
 				CA0000000000000000000224 /* CalendarInteractionService.swift in Sources */,
 				CA0000000000000000000226 /* CalendarTaskDraftSchedule.swift in Sources */,
+				CA0000000000000000000228 /* CalendarTaskOccurrence.swift in Sources */,
 				CA0000000000000000000208 /* NotificationScheduling.swift in Sources */,
 				CA0000000000000000000209 /* ListColor.swift in Sources */,
 				CA0000000000000000000210 /* DateFormatters.swift in Sources */,
@@ -307,6 +314,7 @@
 				CA0000000000000000000401 /* TaskScheduleValidatorTests.swift in Sources */,
 				CA0000000000000000000402 /* CalendarTaskLayoutServiceTests.swift in Sources */,
 				CA0000000000000000000403 /* CalendarInteractionServiceTests.swift in Sources */,
+				CA0000000000000000000404 /* CalendarRecurrenceServiceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

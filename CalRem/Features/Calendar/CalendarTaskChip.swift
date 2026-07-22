@@ -2,8 +2,24 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct CalendarTaskChip: View {
-    let task: TaskItem
+    let occurrence: CalendarTaskOccurrence
     var compact = false
+
+    init(task: TaskItem, compact: Bool = false) {
+        self.occurrence = CalendarTaskOccurrence(task: task) ?? CalendarTaskOccurrence(
+            task: task,
+            startDate: task.calendarStart,
+            endDate: task.calendarEnd,
+            isAllDay: task.isAllDay,
+            isGenerated: false
+        )
+        self.compact = compact
+    }
+
+    init(occurrence: CalendarTaskOccurrence, compact: Bool = false) {
+        self.occurrence = occurrence
+        self.compact = compact
+    }
 
     var body: some View {
         HStack(spacing: 5) {
@@ -11,15 +27,15 @@ struct CalendarTaskChip: View {
                 .fill(color)
                 .frame(width: compact ? 5 : 7, height: compact ? 5 : 7)
 
-            Text(task.title)
+            Text(occurrence.title)
                 .lineLimit(1)
 
-            if !compact, task.isTimed, let start = task.calendarStart {
+            if !compact, occurrence.isTimed, let start = occurrence.calendarStart {
                 Text(DateFormatters.time(start))
                     .foregroundStyle(.secondary)
             }
 
-            if task.isRepeating {
+            if occurrence.isRepeating {
                 Image(systemName: "repeat")
                     .font(.system(size: compact ? 8 : 10, weight: .semibold))
                     .foregroundStyle(.secondary)
@@ -29,49 +45,65 @@ struct CalendarTaskChip: View {
         .padding(.horizontal, compact ? 5 : 7)
         .padding(.vertical, compact ? 3 : 5)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(color.opacity(task.isCompleted ? 0.08 : 0.14), in: RoundedRectangle(cornerRadius: CalRemControlStyle.calendarCellRadius, style: .continuous))
+        .background(color.opacity(occurrence.isCompleted ? 0.08 : 0.14), in: RoundedRectangle(cornerRadius: CalRemControlStyle.calendarCellRadius, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: CalRemControlStyle.calendarCellRadius, style: .continuous)
-                .stroke(color.opacity(task.isCompleted ? 0.12 : 0.30), lineWidth: 1)
+                .stroke(color.opacity(occurrence.isCompleted ? 0.12 : 0.30), lineWidth: 1)
         }
-        .foregroundStyle(task.isCompleted ? .secondary : .primary)
-        .opacity(task.isCompleted ? 0.65 : 1)
+        .foregroundStyle(occurrence.isCompleted ? .secondary : .primary)
+        .opacity(occurrence.isCompleted ? 0.65 : 1)
         .contentShape(RoundedRectangle(cornerRadius: CalRemControlStyle.calendarCellRadius, style: .continuous))
         .help(helpText)
     }
 
     private var color: Color {
-        ListColor.named(task.list?.colorName).color
+        ListColor.named(occurrence.list?.colorName).color
     }
 
     private var helpText: String {
-        if task.isScheduled {
-            "\(task.title) - \(DateFormatters.taskSchedule(task))"
+        if occurrence.isScheduled {
+            "\(occurrence.title) - \(DateFormatters.taskSchedule(occurrence))"
         } else {
-            task.title
+            occurrence.title
         }
     }
 }
 
 struct CalendarTaskBlock: View {
-    let task: TaskItem
+    let occurrence: CalendarTaskOccurrence
     var isInteracting = false
+
+    init(task: TaskItem, isInteracting: Bool = false) {
+        self.occurrence = CalendarTaskOccurrence(task: task) ?? CalendarTaskOccurrence(
+            task: task,
+            startDate: task.calendarStart,
+            endDate: task.calendarEnd,
+            isAllDay: task.isAllDay,
+            isGenerated: false
+        )
+        self.isInteracting = isInteracting
+    }
+
+    init(occurrence: CalendarTaskOccurrence, isInteracting: Bool = false) {
+        self.occurrence = occurrence
+        self.isInteracting = isInteracting
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(task.title)
+                Text(occurrence.title)
                     .font(.caption.weight(.semibold))
                     .lineLimit(2)
 
-                if task.isRepeating {
+                if occurrence.isRepeating {
                     Image(systemName: "repeat")
                         .font(.system(size: 9, weight: .bold))
                         .foregroundStyle(.secondary)
                 }
             }
 
-            if let start = task.calendarStart, let end = task.calendarEnd {
+            if let start = occurrence.calendarStart, let end = occurrence.calendarEnd {
                 Text("\(DateFormatters.time(start)) - \(DateFormatters.time(end))")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -82,7 +114,7 @@ struct CalendarTaskBlock: View {
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(
-            color.opacity(task.isCompleted ? 0.09 : (isInteracting ? 0.28 : 0.20)),
+            color.opacity(occurrence.isCompleted ? 0.09 : (isInteracting ? 0.28 : 0.20)),
             in: RoundedRectangle(cornerRadius: 8, style: .continuous)
         )
         .overlay(alignment: .leading) {
@@ -96,14 +128,14 @@ struct CalendarTaskBlock: View {
                 .stroke(color.opacity(isInteracting ? 0.52 : 0.34), lineWidth: 1)
         }
         .shadow(color: isInteracting ? color.opacity(0.22) : .clear, radius: isInteracting ? 10 : 0, y: isInteracting ? 5 : 0)
-        .foregroundStyle(task.isCompleted ? .secondary : .primary)
-        .opacity(task.isCompleted ? 0.65 : 1)
+        .foregroundStyle(occurrence.isCompleted ? .secondary : .primary)
+        .opacity(occurrence.isCompleted ? 0.65 : 1)
         .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .help(DateFormatters.taskSchedule(task))
+        .help(DateFormatters.taskSchedule(occurrence))
     }
 
     private var color: Color {
-        ListColor.named(task.list?.colorName).color
+        ListColor.named(occurrence.list?.colorName).color
     }
 }
 

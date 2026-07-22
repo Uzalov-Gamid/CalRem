@@ -87,7 +87,7 @@ struct RootView: View {
     @State private var isCalendarTaskDrawerOpen = false
     @State private var createTaskRequest: TaskCreationRequest?
     @State private var editingTask: TaskItem?
-    @State private var calendarEditingTask: TaskItem?
+    @State private var calendarEditingOccurrence: CalendarTaskOccurrence?
     @State private var calendarDraftTaskID: UUID?
     @State private var editingList: TaskList?
     @State private var isCreatingList = false
@@ -187,7 +187,7 @@ struct RootView: View {
                         tasks: calendarTasks,
                         selectedDate: $selectedDate,
                         mode: $calendarMode,
-                        onEditTask: { calendarEditingTask = $0 },
+                        onEditTask: { calendarEditingOccurrence = $0 },
                         onUpdateTaskSchedule: updateTaskSchedule,
                         onCreateTaskSchedule: createCalendarTask,
                         onScheduleExistingTask: scheduleExistingTask
@@ -209,9 +209,9 @@ struct RootView: View {
                 }
             }
 
-            if let calendarEditingTask {
+            if let calendarEditingOccurrence {
                 CalendarTaskInlineEditor(
-                    task: calendarEditingTask,
+                    occurrence: calendarEditingOccurrence,
                     lists: activeLists,
                     onSave: saveCalendarTaskInlineEdit,
                     onDelete: deleteCalendarTaskFromInlineEdit,
@@ -223,7 +223,7 @@ struct RootView: View {
                 .zIndex(30)
             }
         }
-        .animation(.snappy(duration: 0.16), value: calendarEditingTask?.id)
+        .animation(.snappy(duration: 0.16), value: calendarEditingOccurrence?.id)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
     }
@@ -516,10 +516,11 @@ struct RootView: View {
         workspace = .calendar
         try? modelContext.save()
         calendarDraftTaskID = task.id
-        calendarEditingTask = task
+        calendarEditingOccurrence = CalendarTaskOccurrence(task: task)
     }
 
-    private func saveCalendarTaskInlineEdit(_ task: TaskItem, payload: CalendarTaskInlineEditorPayload) {
+    private func saveCalendarTaskInlineEdit(_ occurrence: CalendarTaskOccurrence, payload: CalendarTaskInlineEditorPayload) {
+        let task = occurrence.task
         guard let list = list(with: payload.listID) ?? task.list ?? activeLists.first else { return }
 
         let wasCompleted = task.isCompleted
@@ -529,11 +530,22 @@ struct RootView: View {
         task.isCompleted = payload.isCompleted
         task.completedAt = payload.isCompleted ? (task.completedAt ?? .now) : nil
         task.recurrenceRule = payload.recurrenceRule
-        task.apply(schedule: payload.schedule)
-        task.reminderDate = payload.reminderDate
-        task.notificationIdentifier = payload.reminderDate == nil ? nil : task.notificationID
+        let adjustedSchedule = adjustedSchedule(
+            for: occurrence,
+            proposedSchedule: payload.schedule,
+            editsSeries: payload.recurrenceRule != .none
+        )
+        task.apply(schedule: adjustedSchedule)
+        task.reminderDate = adjustedReminderDate(
+            for: occurrence,
+            proposedReminderDate: payload.reminderDate,
+            adjustedSchedule: adjustedSchedule,
+            proposedSchedule: payload.schedule,
+            editsSeries: payload.recurrenceRule != .none
+        )
+        task.notificationIdentifier = task.reminderDate == nil ? nil : task.notificationID
         task.touch()
-        selectedDate = task.calendarStart ?? selectedDate
+        selectedDate = payload.schedule.dueDate ?? payload.schedule.startDate ?? task.calendarStart ?? selectedDate
         if !wasCompleted, task.isCompleted {
             createNextRecurringInstanceIfNeeded(from: task)
         }
@@ -551,20 +563,22 @@ struct RootView: View {
         }
 
         calendarDraftTaskID = nil
-        calendarEditingTask = nil
+        calendarEditingOccurrence = nil
     }
 
-    private func deleteCalendarTaskFromInlineEdit(_ task: TaskItem) {
+    private func deleteCalendarTaskFromInlineEdit(_ occurrence: CalendarTaskOccurrence) {
+        let task = occurrence.task
         if calendarDraftTaskID == task.id {
             calendarDraftTaskID = nil
         }
-        calendarEditingTask = nil
+        calendarEditingOccurrence = nil
         deleteTask(task)
     }
 
     private func dismissCalendarInlineEditor() {
-        guard let task = calendarEditingTask else { return }
-        calendarEditingTask = nil
+        guard let occurrence = calendarEditingOccurrence else { return }
+        let task = occurrence.task
+        calendarEditingOccurrence = nil
 
         guard calendarDraftTaskID == task.id else { return }
         calendarDraftTaskID = nil
@@ -581,7 +595,8 @@ struct RootView: View {
             && task.reminderDate == nil
     }
 
-    private func updateTaskSchedule(_ task: TaskItem, start: Date, end: Date) {
+    private func updateTaskSchedule(_ occurrence: CalendarTaskOccurrence, start: Date, end: Date) {
+        let task = occurrence.task
         let minimumEnd = Calendar.current.date(
             byAdding: .second,
             value: Int(TaskScheduleValidator.minimumDuration),
@@ -589,14 +604,17 @@ struct RootView: View {
         ) ?? start
         let finalEnd = max(end, minimumEnd)
 
-        task.apply(
-            schedule: TaskSchedule(
+        let schedule = adjustedSchedule(
+            for: occurrence,
+            proposedSchedule: TaskSchedule(
                 dueDate: start,
                 startDate: start,
                 endDate: finalEnd,
                 isAllDay: false
-            )
+            ),
+            editsSeries: true
         )
+        task.apply(schedule: schedule)
         selectedDate = start
         try? modelContext.save()
 
@@ -613,8 +631,9 @@ struct RootView: View {
     }
 
     private func scheduleExistingTask(taskID: UUID, start: Date, end: Date) {
-        guard let task = tasks.first(where: { $0.id == taskID }) else { return }
-        updateTaskSchedule(task, start: start, end: end)
+        guard let task = tasks.first(where: { $0.id == taskID }),
+              let occurrence = CalendarTaskOccurrence(task: task) else { return }
+        updateTaskSchedule(occurrence, start: start, end: end)
     }
 
     private func defaultCalendarTaskSchedule() -> CalendarTaskDraftSchedule {
@@ -668,6 +687,62 @@ struct RootView: View {
             endDate: end,
             isAllDay: false
         )
+    }
+
+    private func adjustedSchedule(
+        for occurrence: CalendarTaskOccurrence,
+        proposedSchedule: TaskSchedule,
+        editsSeries: Bool
+    ) -> TaskSchedule {
+        guard editsSeries,
+              occurrence.isGenerated,
+              let originalStart = occurrence.task.calendarStart,
+              let occurrenceStart = occurrence.calendarStart,
+              let proposedStart = proposedSchedule.dueDate ?? proposedSchedule.startDate else {
+            return proposedSchedule
+        }
+
+        let startDelta = proposedStart.timeIntervalSince(occurrenceStart)
+        let adjustedStart = originalStart.addingTimeInterval(startDelta)
+
+        if proposedSchedule.isAllDay {
+            return TaskSchedule(
+                dueDate: Calendar.current.startOfDay(for: adjustedStart),
+                startDate: nil,
+                endDate: nil,
+                isAllDay: true
+            )
+        }
+
+        let proposedDuration = proposedSchedule.endDate?.timeIntervalSince(proposedStart)
+            ?? occurrence.duration
+        let adjustedDuration = max(proposedDuration, TaskScheduleValidator.minimumDuration)
+        let adjustedEnd = adjustedStart.addingTimeInterval(adjustedDuration)
+
+        return TaskSchedule(
+            dueDate: adjustedStart,
+            startDate: adjustedStart,
+            endDate: adjustedEnd,
+            isAllDay: false
+        )
+    }
+
+    private func adjustedReminderDate(
+        for occurrence: CalendarTaskOccurrence,
+        proposedReminderDate: Date?,
+        adjustedSchedule: TaskSchedule,
+        proposedSchedule: TaskSchedule,
+        editsSeries: Bool
+    ) -> Date? {
+        guard editsSeries,
+              occurrence.isGenerated,
+              let proposedReminderDate,
+              let proposedStart = proposedSchedule.dueDate ?? proposedSchedule.startDate,
+              let adjustedStart = adjustedSchedule.dueDate ?? adjustedSchedule.startDate else {
+            return proposedReminderDate
+        }
+
+        return adjustedStart.addingTimeInterval(proposedReminderDate.timeIntervalSince(proposedStart))
     }
 
     private func deleteList(_ list: TaskList) {

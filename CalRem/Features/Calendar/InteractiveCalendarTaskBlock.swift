@@ -1,19 +1,19 @@
 import SwiftUI
 
 struct InteractiveCalendarTaskBlock: View {
-    let task: TaskItem
+    let occurrence: CalendarTaskOccurrence
     let width: CGFloat
     let height: CGFloat
     let hourHeight: CGFloat
     let dayWidth: CGFloat?
-    let onEditTask: (TaskItem) -> Void
-    let onUpdateSchedule: (TaskItem, Date, Date) -> Void
+    let onEditTask: (CalendarTaskOccurrence) -> Void
+    let onUpdateSchedule: (CalendarTaskOccurrence, Date, Date) -> Void
 
     @GestureState private var moveTranslation: CGSize = .zero
     @GestureState private var resizeDeltaY: CGFloat = 0
 
     var body: some View {
-        CalendarTaskBlock(task: task, isInteracting: isInteracting)
+        CalendarTaskBlock(occurrence: occurrence, isInteracting: isInteracting)
             .frame(width: width, height: displayedHeight)
             .offset(x: moveTranslation.width, y: moveTranslation.height)
             .overlay(alignment: .bottom) {
@@ -22,7 +22,7 @@ struct InteractiveCalendarTaskBlock: View {
             .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             .gesture(moveGesture)
             .onTapGesture {
-                onEditTask(task)
+                onEditTask(occurrence)
             }
             .zIndex(isInteracting ? 20 : 1)
             .animation(.snappy(duration: 0.14), value: isInteracting)
@@ -44,7 +44,7 @@ struct InteractiveCalendarTaskBlock: View {
                 state = value.translation
             }
             .onEnded { value in
-                guard let start = task.calendarStart, let end = task.calendarEnd else { return }
+                guard let start = occurrence.calendarStart, let end = occurrence.calendarEnd else { return }
 
                 let range = CalendarInteractionService.movedRange(
                     start: start,
@@ -53,7 +53,7 @@ struct InteractiveCalendarTaskBlock: View {
                     hourHeight: hourHeight,
                     dayWidth: dayWidth
                 )
-                onUpdateSchedule(task, range.start, range.end)
+                onUpdateSchedule(occurrence, range.start, range.end)
             }
     }
 
@@ -78,7 +78,7 @@ struct InteractiveCalendarTaskBlock: View {
                 state = value.translation.height
             }
             .onEnded { value in
-                guard let start = task.calendarStart, let end = task.calendarEnd else { return }
+                guard let start = occurrence.calendarStart, let end = occurrence.calendarEnd else { return }
 
                 let range = CalendarInteractionService.resizedRange(
                     start: start,
@@ -86,7 +86,7 @@ struct InteractiveCalendarTaskBlock: View {
                     resizeDeltaY: value.translation.height,
                     hourHeight: hourHeight
                 )
-                onUpdateSchedule(task, range.start, range.end)
+                onUpdateSchedule(occurrence, range.start, range.end)
             }
     }
 }

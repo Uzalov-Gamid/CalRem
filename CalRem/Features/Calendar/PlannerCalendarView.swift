@@ -4,8 +4,8 @@ struct PlannerCalendarView: View {
     let tasks: [TaskItem]
     @Binding var selectedDate: Date
     @Binding var mode: CalendarMode
-    let onEditTask: (TaskItem) -> Void
-    let onUpdateTaskSchedule: (TaskItem, Date, Date) -> Void
+    let onEditTask: (CalendarTaskOccurrence) -> Void
+    let onUpdateTaskSchedule: (CalendarTaskOccurrence, Date, Date) -> Void
     let onCreateTaskSchedule: (CalendarTaskDraftSchedule) -> Void
     let onScheduleExistingTask: (UUID, Date, Date) -> Void
 

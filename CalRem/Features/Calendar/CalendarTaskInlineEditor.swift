@@ -11,10 +11,10 @@ struct CalendarTaskInlineEditorPayload {
 }
 
 struct CalendarTaskInlineEditor: View {
-    let task: TaskItem
+    let occurrence: CalendarTaskOccurrence
     let lists: [TaskList]
-    let onSave: (TaskItem, CalendarTaskInlineEditorPayload) -> Void
-    let onDelete: (TaskItem) -> Void
+    let onSave: (CalendarTaskOccurrence, CalendarTaskInlineEditorPayload) -> Void
+    let onDelete: (CalendarTaskOccurrence) -> Void
     let onDismiss: () -> Void
 
     @State private var title: String
@@ -30,21 +30,26 @@ struct CalendarTaskInlineEditor: View {
     @State private var recurrenceRule: TaskRecurrenceRule
     @FocusState private var titleIsFocused: Bool
 
+    private var task: TaskItem {
+        occurrence.task
+    }
+
     init(
-        task: TaskItem,
+        occurrence: CalendarTaskOccurrence,
         lists: [TaskList],
-        onSave: @escaping (TaskItem, CalendarTaskInlineEditorPayload) -> Void,
-        onDelete: @escaping (TaskItem) -> Void,
+        onSave: @escaping (CalendarTaskOccurrence, CalendarTaskInlineEditorPayload) -> Void,
+        onDelete: @escaping (CalendarTaskOccurrence) -> Void,
         onDismiss: @escaping () -> Void
     ) {
-        self.task = task
+        self.occurrence = occurrence
         self.lists = lists
         self.onSave = onSave
         self.onDelete = onDelete
         self.onDismiss = onDismiss
 
-        let start = task.calendarStart ?? .now
-        let end = task.calendarEnd ?? Calendar.current.date(
+        let task = occurrence.task
+        let start = occurrence.calendarStart ?? task.calendarStart ?? .now
+        let end = occurrence.calendarEnd ?? Calendar.current.date(
             byAdding: .minute,
             value: CalendarInteractionService.minimumDurationMinutes,
             to: start
@@ -55,11 +60,11 @@ struct CalendarTaskInlineEditor: View {
         _selectedListID = State(initialValue: task.list?.id ?? lists.first?.id)
         _isCompleted = State(initialValue: task.isCompleted)
         _scheduleDate = State(initialValue: start)
-        _isAllDay = State(initialValue: task.isAllDay)
+        _isAllDay = State(initialValue: occurrence.isAllDay)
         _startTime = State(initialValue: start)
         _endTime = State(initialValue: end)
-        _hasReminder = State(initialValue: task.reminderDate != nil)
-        _reminderDate = State(initialValue: task.reminderDate ?? start)
+        _hasReminder = State(initialValue: occurrence.reminderDate != nil)
+        _reminderDate = State(initialValue: occurrence.reminderDate ?? start)
         _recurrenceRule = State(initialValue: task.recurrenceRule)
     }
 
@@ -228,7 +233,7 @@ struct CalendarTaskInlineEditor: View {
     private var footer: some View {
         HStack {
             Button(role: .destructive) {
-                onDelete(task)
+                onDelete(occurrence)
             } label: {
                 Label("Delete", systemImage: "trash")
             }
@@ -272,6 +277,6 @@ struct CalendarTaskInlineEditor: View {
             reminderDate: hasReminder ? reminderDate : nil,
             recurrenceRule: recurrenceRule
         )
-        onSave(task, payload)
+        onSave(occurrence, payload)
     }
 }
