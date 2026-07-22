@@ -2,11 +2,11 @@ import CoreGraphics
 import Foundation
 
 struct TimedTaskLayoutInput: Identifiable, Equatable {
-    let id: UUID
+    let id: String
     let startDate: Date
     let endDate: Date
 
-    init(id: UUID, startDate: Date, endDate: Date) {
+    init(id: String, startDate: Date, endDate: Date) {
         self.id = id
         self.startDate = startDate
         self.endDate = max(endDate, startDate.addingTimeInterval(TaskScheduleValidator.minimumDuration))
@@ -14,7 +14,7 @@ struct TimedTaskLayoutInput: Identifiable, Equatable {
 }
 
 struct TimedTaskPlacement: Equatable {
-    let id: UUID
+    let id: String
     let column: Int
     let columnCount: Int
 
@@ -28,7 +28,7 @@ struct TimedTaskPlacement: Equatable {
 }
 
 enum CalendarTaskLayoutService {
-    static func placements(for inputs: [TimedTaskLayoutInput]) -> [UUID: TimedTaskPlacement] {
+    static func placements(for inputs: [TimedTaskLayoutInput]) -> [String: TimedTaskPlacement] {
         let sorted = inputs.sorted {
             if $0.startDate == $1.startDate {
                 return $0.endDate < $1.endDate
@@ -36,7 +36,7 @@ enum CalendarTaskLayoutService {
             return $0.startDate < $1.startDate
         }
 
-        var placements: [UUID: TimedTaskPlacement] = [:]
+        var placements: [String: TimedTaskPlacement] = [:]
         var cluster: [TimedTaskLayoutInput] = []
         var clusterEnd: Date?
 
@@ -64,9 +64,9 @@ enum CalendarTaskLayoutService {
         return placements
     }
 
-    private static func layoutCluster(_ cluster: [TimedTaskLayoutInput]) -> [UUID: TimedTaskPlacement] {
+    private static func layoutCluster(_ cluster: [TimedTaskLayoutInput]) -> [String: TimedTaskPlacement] {
         var columnEndDates: [Date] = []
-        var assignments: [(id: UUID, column: Int)] = []
+        var assignments: [(id: String, column: Int)] = []
 
         for input in cluster {
             if let reusableColumn = columnEndDates.firstIndex(where: { $0 <= input.startDate }) {

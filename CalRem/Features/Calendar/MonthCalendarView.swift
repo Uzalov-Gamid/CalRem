@@ -3,7 +3,7 @@ import SwiftUI
 struct MonthCalendarView: View {
     let tasks: [TaskItem]
     @Binding var selectedDate: Date
-    let onEditTask: (TaskItem) -> Void
+    let onEditTask: (CalendarTaskOccurrence) -> Void
     let onCreateTaskSchedule: (CalendarTaskDraftSchedule) -> Void
 
     private let calendarService = CalendarDateService()
@@ -50,9 +50,7 @@ struct MonthCalendarView: View {
     }
 
     private func dayCell(_ day: Date, height: CGFloat) -> some View {
-        let dayTasks = tasks
-            .filter { $0.occurs(on: day) }
-            .sorted { ($0.calendarStart ?? .distantFuture) < ($1.calendarStart ?? .distantFuture) }
+        let dayTasks = CalendarRecurrenceService.occurrences(for: tasks, on: day, calendar: calendarService.calendar)
         let visible = Array(dayTasks.prefix(4))
 
         return VStack(alignment: .leading, spacing: 5) {
@@ -65,10 +63,10 @@ struct MonthCalendarView: View {
                 Spacer()
             }
 
-            ForEach(visible) { task in
-                CalendarTaskChip(task: task, compact: true)
+            ForEach(visible) { occurrence in
+                CalendarTaskChip(occurrence: occurrence, compact: true)
                     .onTapGesture {
-                        onEditTask(task)
+                        onEditTask(occurrence)
                     }
             }
 

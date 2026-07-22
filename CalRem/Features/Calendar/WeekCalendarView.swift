@@ -3,8 +3,8 @@ import SwiftUI
 struct WeekCalendarView: View {
     let tasks: [TaskItem]
     @Binding var selectedDate: Date
-    let onEditTask: (TaskItem) -> Void
-    let onUpdateTaskSchedule: (TaskItem, Date, Date) -> Void
+    let onEditTask: (CalendarTaskOccurrence) -> Void
+    let onUpdateTaskSchedule: (CalendarTaskOccurrence, Date, Date) -> Void
     let onCreateTaskSchedule: (CalendarTaskDraftSchedule) -> Void
     let onScheduleExistingTask: (UUID, Date, Date) -> Void
 
@@ -94,8 +94,8 @@ struct WeekCalendarView: View {
     }
 
     private func dayTimeline(_ day: Date) -> some View {
-        let timedTasks = tasksFor(day: day).filter(\.isTimed)
-        let placements = layoutPlacements(for: timedTasks)
+        let timedOccurrences = occurrencesFor(day: day).filter(\.isTimed)
+        let placements = layoutPlacements(for: timedOccurrences)
 
         return ZStack(alignment: .topLeading) {
             VStack(spacing: 0) {
@@ -127,24 +127,24 @@ struct WeekCalendarView: View {
                         .zIndex(18)
                 }
 
-                ForEach(timedTasks) { task in
-                    let placement = placements[task.id] ?? TimedTaskPlacement(id: task.id, column: 0, columnCount: 1)
+                ForEach(timedOccurrences) { occurrence in
+                    let placement = placements[occurrence.id] ?? TimedTaskPlacement(id: occurrence.id, column: 0, columnCount: 1)
                     let gutter: CGFloat = 4
                     let availableWidth = max(proxy.size.width - gutter * 2, 44)
                     let columnWidth = availableWidth * placement.widthFraction
                     let x = gutter + availableWidth * placement.xFraction
 
                     InteractiveCalendarTaskBlock(
-                        task: task,
+                        occurrence: occurrence,
                         width: max(columnWidth - gutter, 36),
-                        height: blockHeight(for: task),
+                        height: blockHeight(for: occurrence),
                         hourHeight: hourHeight,
                         dayWidth: proxy.size.width,
                         onEditTask: onEditTask,
                         onUpdateSchedule: onUpdateTaskSchedule
                     )
-                        .offset(x: x, y: blockOffset(for: task))
-                    }
+                    .offset(x: x, y: blockOffset(for: occurrence))
+                }
             }
         }
         .frame(maxWidth: .infinity)
@@ -174,17 +174,17 @@ struct WeekCalendarView: View {
     }
 
     private func allDayCell(for day: Date) -> some View {
-        let allDayTasks = tasksFor(day: day).filter(\.isAllDay)
+        let allDayTasks = occurrencesFor(day: day).filter(\.isAllDay)
 
         return VStack(spacing: 4) {
             if allDayTasks.isEmpty {
                 Spacer(minLength: 0)
             } else {
-                ForEach(allDayTasks.prefix(2)) { task in
-                    CalendarTaskChip(task: task, compact: true)
+                ForEach(allDayTasks.prefix(2)) { occurrence in
+                    CalendarTaskChip(occurrence: occurrence, compact: true)
                         .contentShape(RoundedRectangle(cornerRadius: CalRemControlStyle.calendarCellRadius, style: .continuous))
                         .onTapGesture {
-                            onEditTask(task)
+                            onEditTask(occurrence)
                         }
                 }
             }
@@ -214,10 +214,8 @@ struct WeekCalendarView: View {
             .offset(y: y)
     }
 
-    private func tasksFor(day: Date) -> [TaskItem] {
-        tasks
-            .filter { $0.occurs(on: day) }
-            .sorted { ($0.calendarStart ?? .distantFuture) < ($1.calendarStart ?? .distantFuture) }
+    private func occurrencesFor(day: Date) -> [CalendarTaskOccurrence] {
+        CalendarRecurrenceService.occurrences(for: tasks, on: day, calendar: calendarService.calendar)
     }
 
     private var weekDays: [Date] {
@@ -234,21 +232,21 @@ struct WeekCalendarView: View {
             : Color(nsColor: .textBackgroundColor)
     }
 
-    private func blockOffset(for task: TaskItem) -> CGFloat {
-        guard let start = task.calendarStart else { return 0 }
+    private func blockOffset(for occurrence: CalendarTaskOccurrence) -> CGFloat {
+        guard let start = occurrence.calendarStart else { return 0 }
         return CGFloat(calendarService.minutesFromStartOfDay(for: start)) / 60 * hourHeight
     }
 
-    private func blockHeight(for task: TaskItem) -> CGFloat {
-        max(CGFloat(task.duration / 3600) * hourHeight, 28)
+    private func blockHeight(for occurrence: CalendarTaskOccurrence) -> CGFloat {
+        max(CGFloat(occurrence.duration / 3600) * hourHeight, 28)
     }
 
-    private func layoutPlacements(for tasks: [TaskItem]) -> [UUID: TimedTaskPlacement] {
-        let inputs = tasks.compactMap { task -> TimedTaskLayoutInput? in
-            guard let start = task.calendarStart, let end = task.calendarEnd else {
+    private func layoutPlacements(for occurrences: [CalendarTaskOccurrence]) -> [String: TimedTaskPlacement] {
+        let inputs = occurrences.compactMap { occurrence -> TimedTaskLayoutInput? in
+            guard let start = occurrence.calendarStart, let end = occurrence.calendarEnd else {
                 return nil
             }
-            return TimedTaskLayoutInput(id: task.id, startDate: start, endDate: end)
+            return TimedTaskLayoutInput(id: occurrence.id, startDate: start, endDate: end)
         }
 
         return CalendarTaskLayoutService.placements(for: inputs)

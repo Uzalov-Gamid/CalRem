@@ -4,8 +4,8 @@ import XCTest
 final class CalendarTaskLayoutServiceTests: XCTestCase {
     func testNonOverlappingTasksShareSingleColumn() {
         let calendar = calendar()
-        let first = UUID()
-        let second = UUID()
+        let first = "first"
+        let second = "second"
 
         let placements = CalendarTaskLayoutService.placements(for: [
             input(first, 9, 0, 10, 0, calendar),
@@ -20,8 +20,8 @@ final class CalendarTaskLayoutServiceTests: XCTestCase {
 
     func testFullyOverlappingTasksUseSeparateColumns() {
         let calendar = calendar()
-        let first = UUID()
-        let second = UUID()
+        let first = "first"
+        let second = "second"
 
         let placements = CalendarTaskLayoutService.placements(for: [
             input(first, 9, 0, 10, 0, calendar),
@@ -35,9 +35,9 @@ final class CalendarTaskLayoutServiceTests: XCTestCase {
 
     func testPartiallyOverlappingClusterKeepsStableColumnCount() {
         let calendar = calendar()
-        let first = UUID()
-        let second = UUID()
-        let third = UUID()
+        let first = "first"
+        let second = "second"
+        let third = "third"
 
         let placements = CalendarTaskLayoutService.placements(for: [
             input(first, 9, 0, 10, 0, calendar),
@@ -58,7 +58,7 @@ final class CalendarTaskLayoutServiceTests: XCTestCase {
     }
 
     private func input(
-        _ id: UUID,
+        _ id: String,
         _ startHour: Int,
         _ startMinute: Int,
         _ endHour: Int,

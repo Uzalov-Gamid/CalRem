@@ -32,4 +32,24 @@ enum DateFormatters {
 
         return "\(dateTime(start)) - \(dateTime(end))"
     }
+
+    static func taskSchedule(_ occurrence: CalendarTaskOccurrence) -> String {
+        guard let start = occurrence.calendarStart else {
+            return "No date"
+        }
+
+        if occurrence.isAllDay {
+            return date(start)
+        }
+
+        guard let end = occurrence.calendarEnd else {
+            return dateTime(start)
+        }
+
+        if Calendar.current.isDate(start, inSameDayAs: end) {
+            return "\(date(start)), \(time(start)) - \(time(end))"
+        }
+
+        return "\(dateTime(start)) - \(dateTime(end))"
+    }
 }
